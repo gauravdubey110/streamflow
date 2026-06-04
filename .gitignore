@@ -1,0 +1,38 @@
+# ─── Java / Maven ───────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ─── Node / npm ─────────────────────────────────────────────────
+node_modules/
+dist/
+.npm
+frontend/.vite/
+frontend/build/
+
+# ─── IDE ────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# ─── OS ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Docker ─────────────────────────────────────────────────────
+.docker/
+
+# ─── Secrets / env ──────────────────────────────────────────────
+.env
+.env.local
+*.pem
