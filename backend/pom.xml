@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+           https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.streamflow</groupId>
+  <artifactId>streamflow-parent</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>StreamFlow Parent</name>
+  <description>Maven multi-module parent for the StreamFlow project</description>
+
+  <!-- ── Child modules ──────────────────────────────────────────── -->
+  <modules>
+    <module>streamflow-common</module>
+    <module>streamflow-producer</module>
+    <module>streamflow-processor</module>
+    <module>streamflow-api</module>
+  </modules>
+
+  <!-- ── Properties ────────────────────────────────────────────── -->
+  <properties>
+    <java.version>17</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Dependency versions (resolved in dependencyManagement below) -->
+    <spring-boot.version>3.2.5</spring-boot.version>
+    <resilience4j.version>2.1.0</resilience4j.version>
+    <!-- Lombok version must be explicit here for the compiler annotation processor path -->
+    <lombok.version>1.18.32</lombok.version>
+  </properties>
+
+  <!-- ── Dependency management (BOM imports) ───────────────────── -->
+  <!--
+    Design decision (SPEC-01 Q1): We use BOM import rather than
+    spring-boot-starter-parent as the parent of each runnable module.
+    This keeps a single parent hierarchy (streamflow-parent) while still
+    getting Spring Boot's full managed-dependency set.  Each runnable
+    module must explicitly configure spring-boot-maven-plugin.
+  -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- Spring Boot BOM — manages Spring, Jackson, Testcontainers, Lombok, etc. -->
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-dependencies</artifactId>
+        <version>${spring-boot.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Resilience4j BOM — manages resilience4j-* modules consistently -->
+      <dependency>
+        <groupId>io.github.resilience4j</groupId>
+        <artifactId>resilience4j-bom</artifactId>
+        <version>${resilience4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Internal: streamflow-common is a dependency of every runnable module -->
+      <dependency>
+        <groupId>com.streamflow</groupId>
+        <artifactId>streamflow-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- ── Build defaults (pluginManagement) ─────────────────────── -->
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <release>17</release>
+            <!-- Lombok annotation processor for all modules that declare lombok -->
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+
+        <!-- Spring Boot repackage plugin — must be activated per runnable module -->
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
+          <configuration>
+            <excludes>
+              <exclude>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+              </exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.2.5</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>
