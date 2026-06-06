@@ -17,7 +17,13 @@
   <description>Shared DTOs, enums, and constants — no Spring Boot runtime dependency</description>
 
   <dependencies>
-    <!-- Jackson for JSON serialization of DTOs -->
+    <!-- Jackson annotations for @JsonValue, @JsonCreator, @JsonInclude -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+
+    <!-- Jackson databind for ObjectMapper (used in tests; transitive at runtime) -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
