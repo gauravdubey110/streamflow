@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: streamflow-producer
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    # Producer serializers configured programmatically in KafkaProducerConfig
+    # to apply throughput tuning (acks, linger, batch, compression).
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+# Simulation configuration — SPEC-03
+# Override streamflow.simulation.tps via env var STREAMFLOW_SIMULATION_TPS
+streamflow:
+  simulation:
+    enabled: ${STREAMFLOW_SIMULATION_ENABLED:true}
+    tps: ${STREAMFLOW_SIMULATION_TPS:1000}
+    streams:
+      - id: stream-001
+        name: "Tech Talk Live"
+        base-viewers: 50000
+      - id: stream-002
+        name: "Gaming Marathon"
+        base-viewers: 75000
+      - id: stream-003
+        name: "Music Fest 2026"
+        base-viewers: 120000
