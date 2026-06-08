@@ -79,6 +79,12 @@
       <artifactId>kafka</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- junit-jupiter extension: @Testcontainers, @Container lifecycle hooks -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>cassandra</artifactId>
@@ -98,6 +104,21 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <!--
+        Include *IT test classes in the Surefire run so that integration tests
+        (which end with IT by Maven convention) are picked up by `mvn verify`.
+        Without this, Surefire skips *IT classes by default.
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*IT.java</include>
+          </includes>
+        </configuration>
       </plugin>
     </plugins>
   </build>
