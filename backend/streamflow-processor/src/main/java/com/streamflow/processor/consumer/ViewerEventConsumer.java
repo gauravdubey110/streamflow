@@ -4,10 +4,13 @@ import com.streamflow.common.dto.ViewerEventDTO;
 import com.streamflow.common.enums.EventType;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 /**
  * Kafka consumer for the {@code viewer-events} topic.
@@ -26,15 +29,31 @@ import org.springframework.stereotype.Component;
  *             retries up to 3 times then dead-letters to
  *             {@code viewer-events.DLT}.</li>
  * </ul>
+ *
+ * <p>SPEC-05 addition:
+ * <ul>
+ *   <li>R1 – On first event for a stream, {@code SADD active_streams <streamId>}
+ *             so that {@link com.streamflow.processor.snapshot.SnapshotPublisher}
+ *             can discover active streams via {@code SMEMBERS active_streams}.</li>
+ * </ul>
  */
 @Slf4j
 @Component
 public class ViewerEventConsumer {
 
-    private final ViewerCountAggregator viewerCountAggregator;
+    /** Redis key for the set of active stream IDs (SPEC-05 R1). */
+    static final String ACTIVE_STREAMS_KEY = "active_streams";
 
-    public ViewerEventConsumer(ViewerCountAggregator viewerCountAggregator) {
+    /** TTL for the active-streams set — refreshed on every event (SPEC-05 §4). */
+    private static final Duration ACTIVE_STREAMS_TTL = Duration.ofSeconds(300);
+
+    private final ViewerCountAggregator viewerCountAggregator;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    public ViewerEventConsumer(ViewerCountAggregator viewerCountAggregator,
+                               RedisTemplate<String, String> redisTemplate) {
         this.viewerCountAggregator = viewerCountAggregator;
+        this.redisTemplate = redisTemplate;
     }
 
     /**
@@ -75,15 +94,32 @@ public class ViewerEventConsumer {
 
         if (type == EventType.JOIN) {
             viewerCountAggregator.recordJoin(event.streamId(), event.viewerId(), event.timestamp());
+            trackActiveStream(event.streamId());
             log.trace("Processed JOIN: stream={} viewer={}", event.streamId(), event.viewerId());
 
         } else if (type == EventType.DROP) {
             viewerCountAggregator.recordDrop(event.streamId(), event.viewerId());
+            trackActiveStream(event.streamId());
             log.trace("Processed DROP: stream={} viewer={}", event.streamId(), event.viewerId());
 
         } else {
             // QUALITY_SWITCH, BUFFER_START, BUFFER_END, ERROR — handled in later specs
             log.trace("Skipping event type {} for stream={}", type, event.streamId());
         }
+    }
+
+    /**
+     * Registers {@code streamId} in the {@code active_streams} Redis Set and
+     * refreshes the set's TTL (SPEC-05 R1).
+     *
+     * <p>{@code SADD} is idempotent — adding an already-present member is a no-op.
+     * The TTL is refreshed on every call so active streams never expire while
+     * traffic keeps flowing.
+     *
+     * @param streamId the stream to register
+     */
+    void trackActiveStream(String streamId) {
+        redisTemplate.opsForSet().add(ACTIVE_STREAMS_KEY, streamId);
+        redisTemplate.expire(ACTIVE_STREAMS_KEY, ACTIVE_STREAMS_TTL);
     }
 }
