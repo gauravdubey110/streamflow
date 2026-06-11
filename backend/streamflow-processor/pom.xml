@@ -118,6 +118,17 @@
             <include>**/*Test.java</include>
             <include>**/*IT.java</include>
           </includes>
+          <!--
+            Pass DOCKER_HOST into the forked test JVM so that Testcontainers
+            can reach the Docker daemon in Colima or other non-standard socket
+            locations (SPEC-05: build repeatability).
+            Falls back to the standard socket when DOCKER_HOST is not set in
+            the parent shell (e.g. Docker Desktop on Linux/Mac).
+          -->
+          <environmentVariables>
+            <DOCKER_HOST>${env.DOCKER_HOST}</DOCKER_HOST>
+            <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+          </environmentVariables>
         </configuration>
       </plugin>
     </plugins>
