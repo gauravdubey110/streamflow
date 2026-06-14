@@ -3,6 +3,7 @@ package com.streamflow.processor.snapshot;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
+import com.streamflow.processor.aggregator.HealthScoreCalculator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,12 +14,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +54,10 @@ class SnapshotPublisherTest {
     private ValueOperations valueOperations;
 
     @Mock
+    @SuppressWarnings("rawtypes")
+    private HashOperations hashOperations;
+
+    @Mock
     private KafkaTemplate<String, StreamMetricSnapshotDTO> snapshotKafkaTemplate;
 
     @Mock
@@ -63,11 +70,15 @@ class SnapshotPublisherTest {
     void setUp() {
         when(redisTemplate.opsForSet()).thenReturn(setOperations);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        // By default: empty health hash → fallback path (SPEC-09 AC4)
+        when(hashOperations.entries(anyString())).thenReturn(Map.of());
 
         publisher = new SnapshotPublisher(
                 redisTemplate,
                 snapshotKafkaTemplate,
                 viewerCountAggregator,
+                new HealthScoreCalculator(),
                 new ObjectMapper(),
                 new SimpleMeterRegistry()
         );
@@ -189,5 +200,73 @@ class SnapshotPublisherTest {
 
         verify(valueOperations, never()).set(anyString(), anyString(), any(Duration.class));
         verify(snapshotKafkaTemplate, never()).send(anyString(), anyString(), any());
+    }
+
+    // ── SPEC-09: health hash absent → fallback score 50.0 ────────────────────
+
+    /**
+     * When the {@code stream_health:{streamId}} hash is absent (empty map),
+     * the snapshot must contain healthScore = 50.0 (SPEC-09 AC4 / Q1 resolution).
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishSnapshots_absentHealthHash_usesDefaultHealthScore() {
+        String streamId = "stream-no-health";
+        when(setOperations.members("active_streams")).thenReturn(Set.of(streamId));
+        when(viewerCountAggregator.getLiveCount(streamId)).thenReturn(100L);
+        // hashOperations.entries returns empty map (already configured in setUp)
+
+        publisher.publishSnapshots();
+
+        ArgumentCaptor<StreamMetricSnapshotDTO> captor =
+                ArgumentCaptor.forClass(StreamMetricSnapshotDTO.class);
+        verify(snapshotKafkaTemplate).send(
+                eq(KafkaTopics.METRICS_AGGREGATED), eq(streamId), captor.capture());
+
+        StreamMetricSnapshotDTO snapshot = captor.getValue();
+        assertThat(snapshot.healthScore())
+                .as("Missing health hash should fall back to 50.0 (SPEC-09 AC4)")
+                .isEqualTo(50.0);
+    }
+
+    // ── SPEC-09: health hash present → computed score ────────────────────────
+
+    /**
+     * When the {@code stream_health:{streamId}} hash is present with normal values,
+     * the snapshot's healthScore must be computed (not 50.0 fallback).
+     * Normal: bitrate=4500, frameDrop=0.02, latency=120 → score = 80.0.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishSnapshots_presentHealthHash_usesComputedScore() {
+        String streamId = "stream-with-health";
+        when(setOperations.members("active_streams")).thenReturn(Set.of(streamId));
+        when(viewerCountAggregator.getLiveCount(streamId)).thenReturn(200L);
+
+        // Provide a health hash: bitrate=4500, frameDrop=0.02, latency=120 ms
+        // Penalty: 0 (buffer) + 20 (frameDrop) + 0 (latency) + 0 (bitrate) = 20 → score = 80.0
+        Map<Object, Object> healthHash = Map.of(
+                "bitrateKbps",       "4500",
+                "frameDropRate",     "0.02",
+                "encoderLatencyMs",  "120",
+                "cdnEdgeNode",       "edge-test",
+                "timestamp",         String.valueOf(System.currentTimeMillis())
+        );
+        when(hashOperations.entries("stream_health:" + streamId)).thenReturn(healthHash);
+
+        publisher.publishSnapshots();
+
+        ArgumentCaptor<StreamMetricSnapshotDTO> captor =
+                ArgumentCaptor.forClass(StreamMetricSnapshotDTO.class);
+        verify(snapshotKafkaTemplate).send(
+                eq(KafkaTopics.METRICS_AGGREGATED), eq(streamId), captor.capture());
+
+        StreamMetricSnapshotDTO snapshot = captor.getValue();
+        assertThat(snapshot.healthScore())
+                .as("healthScore with normal health hash should be 80.0")
+                .isEqualTo(80.0);
+        assertThat(snapshot.p95LatencyMs())
+                .as("p95LatencyMs should be encoderLatencyMs (120)")
+                .isEqualTo(120);
     }
 }
