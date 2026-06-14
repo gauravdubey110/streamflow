@@ -1,5 +1,6 @@
 package com.streamflow.processor.config;
 
+import com.streamflow.common.dto.StreamHealthEventDTO;
 import com.streamflow.common.dto.ViewerEventDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -30,6 +31,13 @@ import java.util.Map;
  *             error handler retries with exponential back-off (3 attempts, 1s base),
  *             then dead-letters to {@code viewer-events.DLT} via
  *             {@link DeadLetterPublishingRecoverer}.</li>
+ * </ul>
+ *
+ * <p>SPEC-09 additions:
+ * <ul>
+ *   <li>Adds {@link #streamHealthConsumerFactory()} and
+ *       {@link #streamHealthListenerContainerFactory()} for the {@code stream-health} topic.
+ *       Health events are idempotent (latest overwrites), so auto-ack (BATCH mode) is used.</li>
  * </ul>
  *
  * <p>The deserialiser trusts {@code com.streamflow.common.dto} to avoid
@@ -96,6 +104,56 @@ public class KafkaConsumerConfig {
         DefaultErrorHandler errorHandler =
                 new DefaultErrorHandler(recoverer, new FixedBackOff(1_000L, 3L));
         factory.setCommonErrorHandler(errorHandler);
+
+        return factory;
+    }
+
+    // ── SPEC-09: stream-health consumer ───────────────────────────────────────
+
+    /**
+     * Consumer factory for {@link StreamHealthEventDTO} values from the
+     * {@code stream-health} topic.
+     *
+     * <p>Uses the same group-id and bootstrap servers as the viewer-event consumer
+     * so that both listeners share the same consumer group
+     * ({@code stream-processor-group}).
+     */
+    @Bean
+    public ConsumerFactory<String, StreamHealthEventDTO> streamHealthConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.streamflow.common.dto");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, StreamHealthEventDTO.class.getName());
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+
+        return new DefaultKafkaConsumerFactory<>(props,
+                new StringDeserializer(),
+                new JsonDeserializer<>(StreamHealthEventDTO.class, false));
+    }
+
+    /**
+     * Container factory for the {@code stream-health} {@link KafkaListener}.
+     *
+     * <p>Health events are idempotent — the latest Redis Hash value always wins —
+     * so no manual ack or DLT is required. Concurrency = 1 because there are only
+     * 3 partitions on {@code stream-health} and 3 streams; a single thread is
+     * sufficient at 1 event/stream/2 s.
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, StreamHealthEventDTO>
+    streamHealthListenerContainerFactory() {
+
+        ConcurrentKafkaListenerContainerFactory<String, StreamHealthEventDTO> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(streamHealthConsumerFactory());
+        factory.setConcurrency(1);
+        // Auto-ack (BATCH) — acceptable for idempotent health events (SPEC-09 R2)
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.BATCH);
 
         return factory;
     }
