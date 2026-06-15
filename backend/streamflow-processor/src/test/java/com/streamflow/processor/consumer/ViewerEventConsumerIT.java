@@ -141,7 +141,9 @@ class ViewerEventConsumerIT {
         }
         producer.flush();
 
-        await().atMost(Duration.ofSeconds(60))
+        // SPEC-10: timeout increased from 60s to 120s to accommodate the additional
+        // Redis writes added by QualityDistAggregator (2 HINCRBY per JOIN event).
+        await().atMost(Duration.ofSeconds(120))
                 .pollInterval(Duration.ofMillis(500))
                 .untilAsserted(() ->
                         assertThat(viewerCountAggregator.getLiveCount(streamId))
@@ -169,7 +171,9 @@ class ViewerEventConsumerIT {
 
         // Wait for all 1200 messages to be consumed. Since we use a unique streamId,
         // we wait for the count to reach exactly 800 (JOINs - DROPs).
-        await().atMost(Duration.ofSeconds(60))
+        // SPEC-10: timeout increased from 60s to 120s to accommodate the additional
+        // Redis writes added by QualityDistAggregator (2+ HINCRBY per JOIN/DROP event).
+        await().atMost(Duration.ofSeconds(120))
                 .pollInterval(Duration.ofMillis(500))
                 .untilAsserted(() ->
                         assertThat(viewerCountAggregator.getLiveCount(streamId))

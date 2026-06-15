@@ -12,8 +12,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit test for {@link NormalLoadStrategy}.
  *
- * <p>SPEC-03 Test Plan — Unit: strategy distribution (Chi-square style sanity check).
- * Generates 10,000 events and asserts each event type falls within a 5%-point
+ * <p>SPEC-10 R1 event distribution (updated from SPEC-03 R4):
+ * <ul>
+ *   <li>65% JOIN</li>
+ *   <li>25% DROP</li>
+ *   <li>5% QUALITY_SWITCH</li>
+ *   <li>5% BUFFER_START — carries bufferDurationMs in [500, 3000] ms</li>
+ * </ul>
+ *
+ * <p>Generates 10,000 events and asserts each type falls within a 5%-point
  * tolerance of the expected weight.
  */
 class NormalLoadStrategyTest {
@@ -26,17 +33,46 @@ class NormalLoadStrategyTest {
 
     @Test
     void generate_producesEventsWithCorrectFieldsPopulated() {
-        ViewerEventDTO event = strategy.generate(STREAM_ID, STREAM_NAME);
+        // Generate enough events to ensure we hit a BUFFER_START (5% rate)
+        ViewerEventDTO bufferEvent = null;
+        ViewerEventDTO nonBufferEvent = null;
+        for (int i = 0; i < 500; i++) {
+            ViewerEventDTO e = strategy.generate(STREAM_ID, STREAM_NAME);
+            if (e.eventType() == EventType.BUFFER_START && bufferEvent == null) {
+                bufferEvent = e;
+            } else if (e.eventType() != EventType.BUFFER_START && nonBufferEvent == null) {
+                nonBufferEvent = e;
+            }
+            if (bufferEvent != null && nonBufferEvent != null) break;
+        }
 
-        assertThat(event.eventId()).isNotBlank();
-        assertThat(event.streamId()).isEqualTo(STREAM_ID);
-        assertThat(event.viewerId()).isNotBlank();
-        assertThat(event.eventType()).isNotNull();
-        assertThat(event.quality()).isNotNull();
-        assertThat(event.timestamp()).isGreaterThan(0L);
-        assertThat(event.region()).isNotBlank();
-        // bufferDurationMs is null for JOIN/DROP/QUALITY_SWITCH (NormalLoadStrategy)
-        assertThat(event.bufferDurationMs()).isNull();
+        // Common field assertions — applies to all event types
+        for (ViewerEventDTO event : new ViewerEventDTO[]{bufferEvent, nonBufferEvent}) {
+            if (event == null) continue;
+            assertThat(event.eventId()).isNotBlank();
+            assertThat(event.streamId()).isEqualTo(STREAM_ID);
+            assertThat(event.viewerId()).isNotBlank();
+            assertThat(event.eventType()).isNotNull();
+            assertThat(event.quality()).isNotNull();
+            assertThat(event.timestamp()).isGreaterThan(0L);
+            assertThat(event.region()).isNotBlank();
+        }
+
+        // SPEC-10 R1: BUFFER_START carries bufferDurationMs in [500, 3000] ms
+        if (bufferEvent != null) {
+            assertThat(bufferEvent.bufferDurationMs())
+                    .as("BUFFER_START should carry bufferDurationMs in [500, 3000]")
+                    .isNotNull()
+                    .isBetween(NormalLoadStrategy.BUFFER_DURATION_MIN_MS,
+                               NormalLoadStrategy.BUFFER_DURATION_MAX_MS);
+        }
+
+        // Non-BUFFER_START events should have null bufferDurationMs
+        if (nonBufferEvent != null) {
+            assertThat(nonBufferEvent.bufferDurationMs())
+                    .as("Non-BUFFER_START events should have null bufferDurationMs")
+                    .isNull();
+        }
     }
 
     @Test
@@ -49,23 +85,26 @@ class NormalLoadStrategyTest {
             counts.merge(event.eventType(), 1, Integer::sum);
         }
 
-        double joinPct    = 100.0 * counts.get(EventType.JOIN)           / SAMPLE_SIZE;
-        double dropPct    = 100.0 * counts.get(EventType.DROP)           / SAMPLE_SIZE;
-        double switchPct  = 100.0 * counts.get(EventType.QUALITY_SWITCH) / SAMPLE_SIZE;
+        double joinPct        = 100.0 * counts.get(EventType.JOIN)           / SAMPLE_SIZE;
+        double dropPct        = 100.0 * counts.get(EventType.DROP)           / SAMPLE_SIZE;
+        double switchPct      = 100.0 * counts.get(EventType.QUALITY_SWITCH) / SAMPLE_SIZE;
+        double bufferStartPct = 100.0 * counts.get(EventType.BUFFER_START)   / SAMPLE_SIZE;
 
-        // SPEC-03 R4: 70% JOIN ±5%, 25% DROP ±5%, 5% QUALITY_SWITCH ±3%
+        // SPEC-10 R1 distribution: 65% JOIN, 25% DROP, 5% QUALITY_SWITCH, 5% BUFFER_START
         assertThat(joinPct)
-                .as("JOIN percentage should be 70% ±5")
-                .isBetween(65.0, 75.0);
+                .as("JOIN percentage should be 65% ±5 (SPEC-10 R1)")
+                .isBetween(60.0, 70.0);
         assertThat(dropPct)
-                .as("DROP percentage should be 25% ±5")
+                .as("DROP percentage should be 25% ±5 (SPEC-10 R1)")
                 .isBetween(20.0, 30.0);
         assertThat(switchPct)
-                .as("QUALITY_SWITCH percentage should be 5% ±3")
+                .as("QUALITY_SWITCH percentage should be 5% ±3 (SPEC-10 R1)")
+                .isBetween(2.0, 8.0);
+        assertThat(bufferStartPct)
+                .as("BUFFER_START percentage should be 5% ±3 (SPEC-10 R1)")
                 .isBetween(2.0, 8.0);
 
-        // BUFFER_START, BUFFER_END, ERROR are not produced by NormalLoadStrategy
-        assertThat(counts.get(EventType.BUFFER_START)).isZero();
+        // BUFFER_END and ERROR are not produced by NormalLoadStrategy
         assertThat(counts.get(EventType.BUFFER_END)).isZero();
         assertThat(counts.get(EventType.ERROR)).isZero();
     }
@@ -87,5 +126,38 @@ class NormalLoadStrategyTest {
             ViewerEventDTO event = strategy.generate("stream-XYZ", STREAM_NAME);
             assertThat(event.streamId()).isEqualTo("stream-XYZ");
         }
+    }
+
+    /**
+     * SPEC-10 R1: every BUFFER_START event must carry a bufferDurationMs value
+     * in the range [{@link NormalLoadStrategy#BUFFER_DURATION_MIN_MS},
+     * {@link NormalLoadStrategy#BUFFER_DURATION_MAX_MS}].
+     *
+     * <p>Generates events until 10 BUFFER_START events are found and asserts
+     * the range constraint on each.
+     */
+    @Test
+    void generate_bufferStartCarriesBufferDurationMsInRange() {
+        int found = 0;
+        int attempts = 0;
+        while (found < 10 && attempts < 2_000) {
+            ViewerEventDTO event = strategy.generate(STREAM_ID, STREAM_NAME);
+            attempts++;
+            if (event.eventType() == EventType.BUFFER_START) {
+                assertThat(event.bufferDurationMs())
+                        .as("BUFFER_START must have non-null bufferDurationMs (SPEC-10 R1)")
+                        .isNotNull();
+                assertThat(event.bufferDurationMs())
+                        .as("bufferDurationMs must be >= %d ms", NormalLoadStrategy.BUFFER_DURATION_MIN_MS)
+                        .isGreaterThanOrEqualTo(NormalLoadStrategy.BUFFER_DURATION_MIN_MS);
+                assertThat(event.bufferDurationMs())
+                        .as("bufferDurationMs must be <= %d ms", NormalLoadStrategy.BUFFER_DURATION_MAX_MS)
+                        .isLessThanOrEqualTo(NormalLoadStrategy.BUFFER_DURATION_MAX_MS);
+                found++;
+            }
+        }
+        assertThat(found)
+                .as("Should find at least 10 BUFFER_START events within 2000 attempts at 5%% rate")
+                .isGreaterThanOrEqualTo(10);
     }
 }

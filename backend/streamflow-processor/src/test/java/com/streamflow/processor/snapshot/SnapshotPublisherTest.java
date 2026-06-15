@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.processor.aggregator.HealthScoreCalculator;
+import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +64,9 @@ class SnapshotPublisherTest {
     @Mock
     private ViewerCountAggregator viewerCountAggregator;
 
+    @Mock
+    private QualityDistAggregator qualityDistAggregator;
+
     private SnapshotPublisher publisher;
 
     @BeforeEach
@@ -73,11 +77,15 @@ class SnapshotPublisherTest {
         when(redisTemplate.opsForHash()).thenReturn(hashOperations);
         // By default: empty health hash → fallback path (SPEC-09 AC4)
         when(hashOperations.entries(anyString())).thenReturn(Map.of());
+        // SPEC-10: default quality aggregator responses (empty — no events yet)
+        when(qualityDistAggregator.getDistributionPct(anyString())).thenReturn(Map.of());
+        when(qualityDistAggregator.getBufferRatePct(anyString())).thenReturn(0.0);
 
         publisher = new SnapshotPublisher(
                 redisTemplate,
                 snapshotKafkaTemplate,
                 viewerCountAggregator,
+                qualityDistAggregator,
                 new HealthScoreCalculator(),
                 new ObjectMapper(),
                 new SimpleMeterRegistry()
@@ -227,6 +235,40 @@ class SnapshotPublisherTest {
         assertThat(snapshot.healthScore())
                 .as("Missing health hash should fall back to 50.0 (SPEC-09 AC4)")
                 .isEqualTo(50.0);
+    }
+
+    // ── SPEC-10: qualityDistribution populated in snapshot ────────────────────
+
+    /**
+     * SPEC-10 R4: when QualityDistAggregator returns a distribution,
+     * the snapshot must contain it.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishSnapshots_qualityDistribution_populatedInSnapshot() {
+        String streamId = "stream-quality";
+        when(setOperations.members("active_streams")).thenReturn(Set.of(streamId));
+        when(viewerCountAggregator.getLiveCount(streamId)).thenReturn(100L);
+
+        Map<String, Double> dist = Map.of(
+                "1080p", 50.0, "720p", 25.0, "480p", 15.0, "360p", 7.0, "144p", 3.0);
+        when(qualityDistAggregator.getDistributionPct(streamId)).thenReturn(dist);
+        when(qualityDistAggregator.getBufferRatePct(streamId)).thenReturn(1.5);
+
+        publisher.publishSnapshots();
+
+        ArgumentCaptor<StreamMetricSnapshotDTO> captor =
+                ArgumentCaptor.forClass(StreamMetricSnapshotDTO.class);
+        verify(snapshotKafkaTemplate).send(
+                eq(KafkaTopics.METRICS_AGGREGATED), eq(streamId), captor.capture());
+
+        StreamMetricSnapshotDTO snapshot = captor.getValue();
+        assertThat(snapshot.qualityDistribution())
+                .as("qualityDistribution should be populated from QualityDistAggregator")
+                .isEqualTo(dist);
+        assertThat(snapshot.bufferRatePct())
+                .as("bufferRatePct should be populated from QualityDistAggregator")
+                .isEqualTo(1.5);
     }
 
     // ── SPEC-09: health hash present → computed score ────────────────────────
