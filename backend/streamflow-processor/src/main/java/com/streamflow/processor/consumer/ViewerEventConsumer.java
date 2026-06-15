@@ -2,6 +2,7 @@ package com.streamflow.processor.consumer;
 
 import com.streamflow.common.dto.ViewerEventDTO;
 import com.streamflow.common.enums.EventType;
+import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -48,11 +49,14 @@ public class ViewerEventConsumer {
     private static final Duration ACTIVE_STREAMS_TTL = Duration.ofSeconds(300);
 
     private final ViewerCountAggregator viewerCountAggregator;
+    private final QualityDistAggregator qualityDistAggregator;
     private final RedisTemplate<String, String> redisTemplate;
 
     public ViewerEventConsumer(ViewerCountAggregator viewerCountAggregator,
+                               QualityDistAggregator qualityDistAggregator,
                                RedisTemplate<String, String> redisTemplate) {
         this.viewerCountAggregator = viewerCountAggregator;
+        this.qualityDistAggregator = qualityDistAggregator;
         this.redisTemplate = redisTemplate;
     }
 
@@ -95,15 +99,24 @@ public class ViewerEventConsumer {
         if (type == EventType.JOIN) {
             viewerCountAggregator.recordJoin(event.streamId(), event.viewerId(), event.timestamp());
             trackActiveStream(event.streamId());
+            // SPEC-10 R2: JOIN events increment quality distribution counters
+            qualityDistAggregator.recordEvent(event);
             log.trace("Processed JOIN: stream={} viewer={}", event.streamId(), event.viewerId());
 
         } else if (type == EventType.DROP) {
             viewerCountAggregator.recordDrop(event.streamId(), event.viewerId());
             trackActiveStream(event.streamId());
+            // SPEC-10 R2: DROP events increment only the TOTAL buffer counter
+            qualityDistAggregator.recordEvent(event);
             log.trace("Processed DROP: stream={} viewer={}", event.streamId(), event.viewerId());
 
+        } else if (type == EventType.QUALITY_SWITCH || type == EventType.BUFFER_START) {
+            // SPEC-10 R2: QUALITY_SWITCH increments quality tier; BUFFER_START increments BUFFER + TOTAL
+            qualityDistAggregator.recordEvent(event);
+            log.trace("Processed {} for quality/buffer aggregation: stream={}", type, event.streamId());
+
         } else {
-            // QUALITY_SWITCH, BUFFER_START, BUFFER_END, ERROR — handled in later specs
+            // BUFFER_END, ERROR — not aggregated in this spec
             log.trace("Skipping event type {} for stream={}", type, event.streamId());
         }
     }

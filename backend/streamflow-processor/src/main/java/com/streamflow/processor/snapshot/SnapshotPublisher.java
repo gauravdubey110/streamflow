@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.processor.aggregator.HealthScoreCalculator;
+import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import com.streamflow.processor.consumer.StreamHealthConsumer;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -45,6 +46,17 @@ import java.util.concurrent.ConcurrentHashMap;
  *             to a default health score of 50.0 and logs a WARN.</li>
  * </ul>
  *
+ * <p>SPEC-10 additions:
+ * <ul>
+ *   <li>R4 – Calls {@link QualityDistAggregator#getDistributionPct(String)} to populate
+ *             {@code qualityDistribution} in the snapshot.</li>
+ *   <li>R4 – Calls {@link QualityDistAggregator#getBufferRatePct(String)} to populate
+ *             {@code bufferRatePct} in the snapshot (replaces the placeholder 0.0).</li>
+ *   <li>The real {@code bufferRatePct} is also passed into
+ *             {@link HealthScoreCalculator#compute} so the health score reflects actual
+ *             buffering load (previously always 0.0 per the SPEC-09 placeholder).</li>
+ * </ul>
+ *
  * <p><b>Scaling note (NFR1):</b> the single-threaded {@code @Scheduled} task is
  * sufficient for ≤ 10 streams. Beyond that, the task should be partitioned by
  * stream range or replaced with a reactive pipeline (e.g. Project Reactor with a
@@ -77,6 +89,7 @@ public class SnapshotPublisher {
     private final RedisTemplate<String, String> redisTemplate;
     private final KafkaTemplate<String, StreamMetricSnapshotDTO> snapshotKafkaTemplate;
     private final ViewerCountAggregator viewerCountAggregator;
+    private final QualityDistAggregator qualityDistAggregator;
     private final HealthScoreCalculator healthScoreCalculator;
     private final ObjectMapper objectMapper;
     private final Timer snapshotTimer;
@@ -91,6 +104,7 @@ public class SnapshotPublisher {
             RedisTemplate<String, String> redisTemplate,
             KafkaTemplate<String, StreamMetricSnapshotDTO> snapshotKafkaTemplate,
             ViewerCountAggregator viewerCountAggregator,
+            QualityDistAggregator qualityDistAggregator,
             HealthScoreCalculator healthScoreCalculator,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
@@ -98,6 +112,7 @@ public class SnapshotPublisher {
         this.redisTemplate = redisTemplate;
         this.snapshotKafkaTemplate = snapshotKafkaTemplate;
         this.viewerCountAggregator = viewerCountAggregator;
+        this.qualityDistAggregator = qualityDistAggregator;
         this.healthScoreCalculator = healthScoreCalculator;
         this.objectMapper = objectMapper;
 
@@ -167,20 +182,25 @@ public class SnapshotPublisher {
         long delta = currentCount - previous;
         previousCounts.put(streamId, currentCount);
 
+        // SPEC-10 R4: read quality distribution and buffer rate from QualityDistAggregator
+        Map<String, Double> qualityDistribution = qualityDistAggregator.getDistributionPct(streamId);
+        double bufferRatePct = qualityDistAggregator.getBufferRatePct(streamId);
+
         // SPEC-09 R4: read health hash and compute health score
-        HealthFields health = readHealthFields(streamId);
+        // SPEC-10 R4: pass real bufferRatePct (was hardcoded 0.0 in SPEC-09 placeholder)
+        HealthFields health = readHealthFields(streamId, bufferRatePct);
 
         StreamMetricSnapshotDTO snapshot = new StreamMetricSnapshotDTO(
                 streamId,
-                null,                 // streamName — populated in later specs
+                null,                   // streamName — populated in later specs
                 currentCount,
                 delta,
-                0.0,                  // bufferRatePct — SPEC-10
-                health.p95LatencyMs,  // p95LatencyMs  = encoderLatencyMs (SPEC-09 R4)
-                Map.of(),             // qualityDistribution — SPEC-10
-                health.healthScore,   // healthScore   (SPEC-09 R3)
-                "CLOSED",             // circuitBreakerState placeholder — SPEC-12
-                0,                    // activeAlerts  — SPEC-11
+                bufferRatePct,          // SPEC-10 R4
+                health.p95LatencyMs,    // p95LatencyMs = encoderLatencyMs (SPEC-09 R4)
+                qualityDistribution,    // SPEC-10 R4
+                health.healthScore,     // healthScore (SPEC-09 R3 + SPEC-10 R4)
+                "CLOSED",               // circuitBreakerState placeholder — SPEC-12
+                0,                      // activeAlerts — SPEC-11
                 System.currentTimeMillis()
         );
 
@@ -207,11 +227,15 @@ public class SnapshotPublisher {
      * a fallback with {@link #DEFAULT_HEALTH_SCORE_ON_EXPIRY} and 0 latency, and
      * logs a WARN (SPEC-09 AC4 / Q1 resolution).
      *
-     * @param streamId the stream to look up
+     * <p>SPEC-10 R4: {@code bufferRatePct} is now supplied by the caller (from
+     * {@link QualityDistAggregator}) instead of being hardcoded to 0.0.
+     *
+     * @param streamId      the stream to look up
+     * @param bufferRatePct the real buffer-rate percentage from {@link QualityDistAggregator}
      * @return a {@link HealthFields} value object
      */
     @SuppressWarnings("unchecked")
-    private HealthFields readHealthFields(String streamId) {
+    private HealthFields readHealthFields(String streamId, double bufferRatePct) {
         String key = StreamHealthConsumer.HEALTH_KEY_PREFIX + streamId;
         Map<Object, Object> raw = redisTemplate.opsForHash().entries(key);
 
@@ -223,11 +247,11 @@ public class SnapshotPublisher {
         }
 
         try {
-            double bufferRatePct  = 0.0; // SPEC-10 will provide this; use 0 for now
             double frameDropRate  = parseDouble(raw, StreamHealthConsumer.FIELD_FRAME_DROP);
             int encoderLatencyMs  = parseInt(raw, StreamHealthConsumer.FIELD_LATENCY);
             int bitrateKbps       = parseInt(raw, StreamHealthConsumer.FIELD_BITRATE);
 
+            // SPEC-10 R4: use real bufferRatePct from QualityDistAggregator
             double score = healthScoreCalculator.compute(
                     bufferRatePct, frameDropRate, encoderLatencyMs, bitrateKbps);
 
