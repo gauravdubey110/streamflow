@@ -7,6 +7,7 @@ import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.processor.aggregator.HealthScoreCalculator;
 import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
+import com.streamflow.processor.alert.AlertEngine;
 import com.streamflow.processor.consumer.StreamHealthConsumer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -57,6 +58,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *             buffering load (previously always 0.0 per the SPEC-09 placeholder).</li>
  * </ul>
  *
+ * <p>SPEC-11 additions:
+ * <ul>
+ *   <li>R5 – Calls {@link AlertEngine#getActiveAlertCount(String)} to populate
+ *             {@code activeAlerts} in the snapshot (replaces the placeholder 0).</li>
+ * </ul>
+ *
  * <p><b>Scaling note (NFR1):</b> the single-threaded {@code @Scheduled} task is
  * sufficient for ≤ 10 streams. Beyond that, the task should be partitioned by
  * stream range or replaced with a reactive pipeline (e.g. Project Reactor with a
@@ -91,6 +98,7 @@ public class SnapshotPublisher {
     private final ViewerCountAggregator viewerCountAggregator;
     private final QualityDistAggregator qualityDistAggregator;
     private final HealthScoreCalculator healthScoreCalculator;
+    private final AlertEngine alertEngine;
     private final ObjectMapper objectMapper;
     private final Timer snapshotTimer;
 
@@ -106,6 +114,7 @@ public class SnapshotPublisher {
             ViewerCountAggregator viewerCountAggregator,
             QualityDistAggregator qualityDistAggregator,
             HealthScoreCalculator healthScoreCalculator,
+            AlertEngine alertEngine,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
 
@@ -114,6 +123,7 @@ public class SnapshotPublisher {
         this.viewerCountAggregator = viewerCountAggregator;
         this.qualityDistAggregator = qualityDistAggregator;
         this.healthScoreCalculator = healthScoreCalculator;
+        this.alertEngine = alertEngine;
         this.objectMapper = objectMapper;
 
         // SPEC-05 task §5: Micrometer timer around the scheduled run
@@ -190,6 +200,9 @@ public class SnapshotPublisher {
         // SPEC-10 R4: pass real bufferRatePct (was hardcoded 0.0 in SPEC-09 placeholder)
         HealthFields health = readHealthFields(streamId, bufferRatePct);
 
+        // SPEC-11 R5: count active dedup keys for this stream
+        int activeAlerts = alertEngine.getActiveAlertCount(streamId);
+
         StreamMetricSnapshotDTO snapshot = new StreamMetricSnapshotDTO(
                 streamId,
                 null,                   // streamName — populated in later specs
@@ -200,7 +213,7 @@ public class SnapshotPublisher {
                 qualityDistribution,    // SPEC-10 R4
                 health.healthScore,     // healthScore (SPEC-09 R3 + SPEC-10 R4)
                 "CLOSED",               // circuitBreakerState placeholder — SPEC-12
-                0,                      // activeAlerts — SPEC-11
+                activeAlerts,           // SPEC-11 R5
                 System.currentTimeMillis()
         );
 
