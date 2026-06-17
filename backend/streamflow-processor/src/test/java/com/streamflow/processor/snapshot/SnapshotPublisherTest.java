@@ -6,6 +6,8 @@ import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.processor.aggregator.HealthScoreCalculator;
 import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
+import com.streamflow.processor.alert.AlertEngine;
+import com.streamflow.processor.circuitbreaker.AlertProcessorCircuitBreaker;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,9 @@ import static org.mockito.Mockito.*;
  * <p>SPEC-05 Test Plan — Unit: verify that for each active stream the publisher
  * writes a JSON snapshot to Redis (SET with TTL) and sends a Kafka message to
  * {@code metrics-aggregated}.
+ *
+ * <p>SPEC-12 additions: mock {@link AlertProcessorCircuitBreaker} and verify that
+ * the snapshot's {@code circuitBreakerState} field reflects the CB state.
  *
  * <p>All external dependencies (Redis, Kafka, aggregator) are mocked so the test
  * runs without any infrastructure.
@@ -67,6 +72,12 @@ class SnapshotPublisherTest {
     @Mock
     private QualityDistAggregator qualityDistAggregator;
 
+    @Mock
+    private AlertEngine alertEngine;
+
+    @Mock
+    private AlertProcessorCircuitBreaker alertProcessorCircuitBreaker;
+
     private SnapshotPublisher publisher;
 
     @BeforeEach
@@ -81,12 +92,20 @@ class SnapshotPublisherTest {
         when(qualityDistAggregator.getDistributionPct(anyString())).thenReturn(Map.of());
         when(qualityDistAggregator.getBufferRatePct(anyString())).thenReturn(0.0);
 
+        // SPEC-11: default activeAlerts = 0 (no rules fire in this unit test)
+        when(alertEngine.getActiveAlertCount(anyString())).thenReturn(0);
+
+        // SPEC-12: default CB state = CLOSED
+        when(alertProcessorCircuitBreaker.getCurrentState()).thenReturn("CLOSED");
+
         publisher = new SnapshotPublisher(
                 redisTemplate,
                 snapshotKafkaTemplate,
                 viewerCountAggregator,
                 qualityDistAggregator,
                 new HealthScoreCalculator(),
+                alertEngine,
+                alertProcessorCircuitBreaker,
                 new ObjectMapper(),
                 new SimpleMeterRegistry()
         );
@@ -310,5 +329,58 @@ class SnapshotPublisherTest {
         assertThat(snapshot.p95LatencyMs())
                 .as("p95LatencyMs should be encoderLatencyMs (120)")
                 .isEqualTo(120);
+    }
+
+    // ── SPEC-12: circuitBreakerState reflected from CB registry ──────────────
+
+    /**
+     * SPEC-12 R7: when the CB state is {@code OPEN}, the snapshot's
+     * {@code circuitBreakerState} field must be {@code "OPEN"} (not the old
+     * hard-coded {@code "CLOSED"} placeholder).
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishSnapshots_openCbState_reflectedInSnapshot() {
+        String streamId = "stream-cb-open";
+        when(setOperations.members("active_streams")).thenReturn(Set.of(streamId));
+        when(viewerCountAggregator.getLiveCount(streamId)).thenReturn(100L);
+        // Simulate an OPEN circuit breaker
+        when(alertProcessorCircuitBreaker.getCurrentState()).thenReturn("OPEN");
+
+        publisher.publishSnapshots();
+
+        ArgumentCaptor<StreamMetricSnapshotDTO> captor =
+                ArgumentCaptor.forClass(StreamMetricSnapshotDTO.class);
+        verify(snapshotKafkaTemplate).send(
+                eq(KafkaTopics.METRICS_AGGREGATED), eq(streamId), captor.capture());
+
+        StreamMetricSnapshotDTO snapshot = captor.getValue();
+        assertThat(snapshot.circuitBreakerState())
+                .as("circuitBreakerState should be OPEN when CB is OPEN (SPEC-12 R7)")
+                .isEqualTo("OPEN");
+    }
+
+    /**
+     * SPEC-12 R7: when the CB state is {@code HALF_OPEN}, the snapshot reflects it.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void publishSnapshots_halfOpenCbState_reflectedInSnapshot() {
+        String streamId = "stream-cb-halfopen";
+        when(setOperations.members("active_streams")).thenReturn(Set.of(streamId));
+        when(viewerCountAggregator.getLiveCount(streamId)).thenReturn(100L);
+        when(alertProcessorCircuitBreaker.getCurrentState()).thenReturn("HALF_OPEN");
+
+        publisher.publishSnapshots();
+
+        ArgumentCaptor<StreamMetricSnapshotDTO> captor =
+                ArgumentCaptor.forClass(StreamMetricSnapshotDTO.class);
+        verify(snapshotKafkaTemplate).send(
+                eq(KafkaTopics.METRICS_AGGREGATED), eq(streamId), captor.capture());
+
+        StreamMetricSnapshotDTO snapshot = captor.getValue();
+        assertThat(snapshot.circuitBreakerState())
+                .as("circuitBreakerState should be HALF_OPEN when CB is HALF_OPEN (SPEC-12 R7)")
+                .isEqualTo("HALF_OPEN");
     }
 }
