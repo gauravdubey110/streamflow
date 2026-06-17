@@ -8,6 +8,7 @@ import com.streamflow.processor.aggregator.HealthScoreCalculator;
 import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import com.streamflow.processor.alert.AlertEngine;
+import com.streamflow.processor.circuitbreaker.AlertProcessorCircuitBreaker;
 import com.streamflow.processor.consumer.StreamHealthConsumer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -64,6 +65,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *             {@code activeAlerts} in the snapshot (replaces the placeholder 0).</li>
  * </ul>
  *
+ * <p>SPEC-12 additions:
+ * <ul>
+ *   <li>R7 – Reads {@code circuitBreakerState} from
+ *             {@link AlertProcessorCircuitBreaker#getCurrentState()} (local Resilience4j
+ *             registry) instead of the previous hard-coded {@code "CLOSED"} placeholder.</li>
+ * </ul>
+ *
  * <p><b>Scaling note (NFR1):</b> the single-threaded {@code @Scheduled} task is
  * sufficient for ≤ 10 streams. Beyond that, the task should be partitioned by
  * stream range or replaced with a reactive pipeline (e.g. Project Reactor with a
@@ -99,6 +107,7 @@ public class SnapshotPublisher {
     private final QualityDistAggregator qualityDistAggregator;
     private final HealthScoreCalculator healthScoreCalculator;
     private final AlertEngine alertEngine;
+    private final AlertProcessorCircuitBreaker alertProcessorCircuitBreaker;
     private final ObjectMapper objectMapper;
     private final Timer snapshotTimer;
 
@@ -115,6 +124,7 @@ public class SnapshotPublisher {
             QualityDistAggregator qualityDistAggregator,
             HealthScoreCalculator healthScoreCalculator,
             AlertEngine alertEngine,
+            AlertProcessorCircuitBreaker alertProcessorCircuitBreaker,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
 
@@ -124,6 +134,7 @@ public class SnapshotPublisher {
         this.qualityDistAggregator = qualityDistAggregator;
         this.healthScoreCalculator = healthScoreCalculator;
         this.alertEngine = alertEngine;
+        this.alertProcessorCircuitBreaker = alertProcessorCircuitBreaker;
         this.objectMapper = objectMapper;
 
         // SPEC-05 task §5: Micrometer timer around the scheduled run
@@ -203,6 +214,9 @@ public class SnapshotPublisher {
         // SPEC-11 R5: count active dedup keys for this stream
         int activeAlerts = alertEngine.getActiveAlertCount(streamId);
 
+        // SPEC-12 R7: read real CB state from local Resilience4j registry (replaces "CLOSED" placeholder)
+        String cbState = alertProcessorCircuitBreaker.getCurrentState();
+
         StreamMetricSnapshotDTO snapshot = new StreamMetricSnapshotDTO(
                 streamId,
                 null,                   // streamName — populated in later specs
@@ -212,7 +226,7 @@ public class SnapshotPublisher {
                 health.p95LatencyMs,    // p95LatencyMs = encoderLatencyMs (SPEC-09 R4)
                 qualityDistribution,    // SPEC-10 R4
                 health.healthScore,     // healthScore (SPEC-09 R3 + SPEC-10 R4)
-                "CLOSED",               // circuitBreakerState placeholder — SPEC-12
+                cbState,                // SPEC-12 R7 — real CB state
                 activeAlerts,           // SPEC-11 R5
                 System.currentTimeMillis()
         );
