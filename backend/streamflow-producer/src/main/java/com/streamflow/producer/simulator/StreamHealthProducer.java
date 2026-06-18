@@ -2,6 +2,8 @@ package com.streamflow.producer.simulator;
 
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.StreamHealthEventDTO;
+import com.streamflow.producer.chaos.ChaosInjector;
+import com.streamflow.producer.chaos.ChaosScenario;
 import com.streamflow.producer.config.SimulationConfig;
 import com.streamflow.producer.config.SimulationConfig.StreamDefinition;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -46,8 +49,15 @@ public class StreamHealthProducer {
             "edge-singapore-01"
     };
 
+    /** SPEC-13 BITRATE_SPIKE: degraded bitrate target in kbps. */
+    static final int CHAOS_BITRATE_KBPS = 1_500;
+
+    /** SPEC-13 BITRATE_SPIKE: degraded frame-drop rate. */
+    static final double CHAOS_FRAME_DROP_RATE = 0.15;
+
     private final SimulationConfig simulationConfig;
     private final KafkaTemplate<String, StreamHealthEventDTO> healthEventKafkaTemplate;
+    private final ChaosInjector chaosInjector;
     private final Random random = new Random();
 
     /**
@@ -71,7 +81,15 @@ public class StreamHealthProducer {
 
         for (StreamDefinition stream : streams) {
             try {
-                StreamHealthEventDTO event = buildEvent(stream.getId());
+                // SPEC-13: STREAM_DOWN suppresses health events; BITRATE_SPIKE modulates values
+                Optional<ChaosScenario> active = chaosInjector.activeScenario(stream.getId());
+                if (active.isPresent() && active.get() == ChaosScenario.STREAM_DOWN) {
+                    log.trace("Skipping health event for stream={} (STREAM_DOWN chaos active)", stream.getId());
+                    continue;
+                }
+                StreamHealthEventDTO event = active.isPresent() && active.get() == ChaosScenario.BITRATE_SPIKE
+                        ? buildDegradedEvent(stream.getId())
+                        : buildEvent(stream.getId());
                 healthEventKafkaTemplate.send(KafkaTopics.STREAM_HEALTH, stream.getId(), event)
                         .whenComplete((result, ex) -> {
                             if (ex != null) {
@@ -90,6 +108,27 @@ public class StreamHealthProducer {
     }
 
     // ── internal ──────────────────────────────────────────────────────────────
+
+    /**
+     * Constructs a degraded health event for the BITRATE_SPIKE chaos scenario.
+     *
+     * <p>SPEC-13 R2: bitrateKbps = 1 500, frameDropRate = 0.15, encoderLatencyMs gets normal jitter.
+     *
+     * @param streamId the stream this event belongs to
+     * @return a degraded {@link StreamHealthEventDTO}
+     */
+    StreamHealthEventDTO buildDegradedEvent(String streamId) {
+        String cdnEdgeNode = CDN_EDGE_NODES[random.nextInt(CDN_EDGE_NODES.length)];
+        return new StreamHealthEventDTO(
+                UUID.randomUUID().toString(),
+                streamId,
+                CHAOS_BITRATE_KBPS,
+                CHAOS_FRAME_DROP_RATE,
+                applyJitter(BASE_LATENCY_MS),
+                cdnEdgeNode,
+                System.currentTimeMillis()
+        );
+    }
 
     /**
      * Constructs a health event with ±10 % randomisation around the base values.

@@ -110,6 +110,11 @@ public class ViewerEventProducer {
     private void emitEvent() {
         try {
             ViewerEventDTO event = strategy.generate(streamId, streamName);
+            // SPEC-13: ChaosAwareStrategy returns null for STREAM_DOWN scenario — skip publish
+            if (event == null) {
+                log.trace("Skipping event for stream={} (STREAM_DOWN chaos active)", streamId);
+                return;
+            }
             kafkaTemplate.send(KafkaTopics.VIEWER_EVENTS, streamId, event)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
