@@ -2,6 +2,7 @@ package com.streamflow.common;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamflow.common.dto.AlertEventDTO;
+import com.streamflow.common.dto.CbStateEventDTO;
 import com.streamflow.common.dto.StreamHealthEventDTO;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.common.dto.ViewerEventDTO;
@@ -206,5 +207,24 @@ class DtoRoundTripTest {
                 mapper.writeValueAsString(AlertType.HIGH_BUFFER_RATE));
         assertEquals(AlertType.VIEWER_DROP,
                 mapper.readValue("\"VIEWER_DROP\"", AlertType.class));
+    }
+
+    // ── CbStateEventDTO (SPEC-14) ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("SPEC-14: CbStateEventDTO round-trips correctly")
+    void cbStateEventDto_roundTrip() throws Exception {
+        var original = new CbStateEventDTO(
+                "all",
+                "CLOSED",
+                "OPEN",
+                "Failure rate 60% exceeded threshold 50%",
+                1717350000000L
+        );
+
+        byte[] json = mapper.writeValueAsBytes(original);
+        var restored = mapper.readValue(json, CbStateEventDTO.class);
+
+        assertEquals(original, restored);
     }
 }

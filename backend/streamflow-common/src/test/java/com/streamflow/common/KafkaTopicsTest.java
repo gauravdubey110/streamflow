@@ -35,4 +35,10 @@ class KafkaTopicsTest {
     void metricsAggregated_constantValue() {
         assertEquals("metrics-aggregated", KafkaTopics.METRICS_AGGREGATED);
     }
+
+    @Test
+    @DisplayName("SPEC-14 R3: CB_EVENTS constant value is 'cb-events'")
+    void cbEvents_constantValue() {
+        assertEquals("cb-events", KafkaTopics.CB_EVENTS);
+    }
 }
