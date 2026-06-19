@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 /**
  * STOMP-over-SockJS WebSocket configuration.
@@ -18,10 +19,16 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  *   <li>Origin patterns: {@code *} — per-origin CORS is handled by
  *       {@link CorsConfig} for REST; SockJS needs its own pattern here.</li>
  * </ul>
+ *
+ * <p>SPEC-14 R5: message size limit raised to 64 KB to accommodate alert and
+ * circuit-breaker payloads without back-pressure drops on slow clients.
  */
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    /** 64 KB message size limit per SPEC-14 R5. */
+    private static final int MESSAGE_SIZE_LIMIT = 64 * 1024;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -37,5 +44,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+    }
+
+    /**
+     * SPEC-14 R5: increase the send buffer / message size limits to 64 KB so that
+     * alert and circuit-breaker payloads are never silently dropped on slow clients.
+     */
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        registration.setMessageSizeLimit(MESSAGE_SIZE_LIMIT);
+        registration.setSendBufferSizeLimit(MESSAGE_SIZE_LIMIT);
     }
 }
