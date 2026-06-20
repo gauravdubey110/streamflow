@@ -43,6 +43,7 @@ create_topic "viewer-events"      6   # keyed by streamId; high-throughput viewe
 create_topic "stream-health"      3   # encoder / CDN telemetry
 create_topic "alerts"             3   # fired alert events (24 h retention in prod)
 create_topic "metrics-aggregated" 3   # processor → API gateway internal topic
+create_topic "cb-events"          3   # SPEC-14: circuit-breaker state transitions (processor → API)
 
 echo ""
 echo "Topic list:"
