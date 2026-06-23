@@ -3,6 +3,7 @@
  *
  * Spec ref: SPEC-08 Test Plan — render card with mock data; assert viewer
  * count and delta shown; assert reconnecting overlay when disconnected.
+ * SPEC-15 — HealthGauge, QualityDistBar, BufferRateBadge integrated into layout.
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -107,7 +108,7 @@ describe('StreamCard', () => {
     expect(deltaEl).toBeDefined()
   })
 
-  it('shows buffer rate', () => {
+  it('shows buffer rate in the badge (SPEC-15 R3)', () => {
     mockUseStreamMetrics.mockReturnValue({
       snapshot: makeSnapshot({ bufferRatePct: 3.5 }),
       history: [],
@@ -115,10 +116,11 @@ describe('StreamCard', () => {
     })
 
     render(<StreamCard streamId="stream-001" />)
-    expect(screen.getByText('3.5%')).toBeDefined()
+    // BufferRateBadge renders "3.5%" as a text node; regex matches it.
+    expect(screen.getByText(/3\.5%/)).toBeDefined()
   })
 
-  it('shows dash placeholders when snapshot is null', () => {
+  it('shows dash placeholder for viewer count when snapshot is null', () => {
     mockUseStreamMetrics.mockReturnValue({
       snapshot: null,
       history: [],
@@ -126,9 +128,20 @@ describe('StreamCard', () => {
     })
 
     render(<StreamCard streamId="stream-001" />)
-    // Both viewer count and buffer rate show "—" before first message.
-    const dashes = screen.getAllByText('—')
-    expect(dashes.length).toBeGreaterThanOrEqual(2)
+    // Viewer count shows "—" before first message; badge is not rendered when null.
+    expect(screen.getByText('—')).toBeDefined()
+  })
+
+  it('does not render BufferRateBadge when snapshot is null', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: null,
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    // Badge aria-label is not in DOM when snapshot is null.
+    expect(screen.queryByLabelText(/Buffer rate:/)).toBeNull()
   })
 
   it('shows Reconnecting overlay when disconnected', () => {
@@ -188,5 +201,67 @@ describe('StreamCard', () => {
     render(<StreamCard streamId="stream-001" fading={true} />)
     const card = screen.getByTestId('stream-card-stream-001')
     expect(card.className).toContain('opacity-0')
+  })
+
+  // ── SPEC-15 layout integration tests ──
+
+  it('renders HealthGauge with aria-label when snapshot is available (SPEC-15 R1)', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: makeSnapshot({ healthScore: 95 }),
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    // HealthGauge sets role="img" with aria-label.
+    const gauge = screen.getByRole('img', { name: /Health score:/ })
+    expect(gauge).toBeDefined()
+  })
+
+  it('renders QualityDistBar when snapshot is available (SPEC-15 R2)', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: makeSnapshot(),
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    const bar = screen.getByRole('img', { name: 'Quality distribution bar' })
+    expect(bar).toBeDefined()
+  })
+
+  it('renders BufferRateBadge with aria-label when snapshot is available (SPEC-15 R3)', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: makeSnapshot({ bufferRatePct: 1.8 }),
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    const badge = screen.getByLabelText(/Buffer rate: 1\.8 percent/)
+    expect(badge).toBeDefined()
+  })
+
+  it('HealthGauge shows score 99 in the center for high-health stream (SPEC-15 R1)', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: makeSnapshot({ healthScore: 99.2 }),
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    // HealthGauge renders toFixed(0) → "99"
+    expect(screen.getByText('99')).toBeDefined()
+  })
+
+  it('renders Quality section label (SPEC-15 R4 row 3 label)', () => {
+    mockUseStreamMetrics.mockReturnValue({
+      snapshot: makeSnapshot(),
+      history: [],
+      connected: true,
+    })
+
+    render(<StreamCard streamId="stream-001" />)
+    expect(screen.getByText('Quality')).toBeDefined()
   })
 })
