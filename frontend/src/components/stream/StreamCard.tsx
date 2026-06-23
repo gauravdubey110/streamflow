@@ -2,6 +2,9 @@ import clsx from 'clsx'
 import { useStreamMetrics } from '../../hooks/useStreamMetrics'
 import { LiveDot } from '../common/LiveDot'
 import { MetricCard } from '../common/MetricCard'
+import { BufferRateBadge } from './BufferRateBadge'
+import { HealthGauge } from './HealthGauge'
+import { QualityDistBar } from './QualityDistBar'
 import { ViewerCountChart } from './ViewerCountChart'
 
 interface StreamCardProps {
@@ -15,11 +18,16 @@ interface StreamCardProps {
 const fmt = new Intl.NumberFormat()
 
 /**
- * StreamCard — tile for one live stream.  Subscribes to WebSocket metrics,
- * shows viewer count, delta arrow, buffer rate, and a 60-second chart.
+ * StreamCard — tile for one live stream.  Subscribes to WebSocket metrics.
+ *
+ * Layout (SPEC-15 R4):
+ *   Row 1: stream name + LiveDot + BufferRateBadge
+ *   Row 2: ViewerCountChart (full width)
+ *   Row 3: HealthGauge | QualityDistBar (50/50 columns)
+ *
  * Overlays a "Reconnecting…" pulse if the WebSocket connection is lost.
  *
- * Spec ref: SPEC-08 R2, R3, R5, R6.
+ * Spec ref: SPEC-08 R2, R3, R5, R6; SPEC-15 R3, R4.
  */
 export function StreamCard({ streamId, streamName, fading = false }: StreamCardProps) {
   const { snapshot, history, connected } = useStreamMetrics(streamId)
@@ -47,8 +55,9 @@ export function StreamCard({ streamId, streamName, fading = false }: StreamCardP
         ? 'text-red-400'
         : 'text-gray-400'
 
-  const bufferLabel =
-    snapshot !== null ? `${snapshot.bufferRatePct.toFixed(1)}%` : '—'
+  const bufferRate = snapshot?.bufferRatePct ?? 0
+  const healthScore = snapshot?.healthScore ?? 100
+  const qualityDist = snapshot?.qualityDistribution ?? {}
 
   return (
     <div
@@ -58,18 +67,21 @@ export function StreamCard({ streamId, streamName, fading = false }: StreamCardP
       )}
       data-testid={`stream-card-${streamId}`}
     >
-      {/* Header row */}
+      {/* ── Row 1: name + LiveDot + BufferRateBadge ── Spec-15 R4 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <LiveDot connected={connected} />
           <span className="font-semibold text-sm text-white truncate" title={displayName}>
             {displayName}
           </span>
+          <span className="text-xs text-gray-500 shrink-0">{streamId}</span>
         </div>
-        <span className="text-xs text-gray-500 shrink-0">{streamId}</span>
+        {snapshot !== null && (
+          <BufferRateBadge rate={bufferRate} />
+        )}
       </div>
 
-      {/* Metrics row */}
+      {/* ── Viewers metric ── */}
       <div className="flex gap-4">
         <MetricCard
           label="Viewers"
@@ -81,15 +93,27 @@ export function StreamCard({ streamId, streamName, fading = false }: StreamCardP
           }
           className="flex-1"
         />
-        <MetricCard label="Buffer rate" value={bufferLabel} className="shrink-0" />
       </div>
 
-      {/* Chart */}
-      <div className="mt-1" aria-label="Viewer count chart">
+      {/* ── Row 2: ViewerCountChart (full width) ── Spec-15 R4 */}
+      <div aria-label="Viewer count chart">
         <ViewerCountChart history={history} />
       </div>
 
-      {/* Reconnecting overlay — spec R5 */}
+      {/* ── Row 3: HealthGauge | QualityDistBar (50/50) ── Spec-15 R4 */}
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center shrink-0">
+          <HealthGauge score={healthScore} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-xs uppercase tracking-wide text-gray-400 block mb-1">
+            Quality
+          </span>
+          <QualityDistBar distribution={qualityDist} />
+        </div>
+      </div>
+
+      {/* ── Reconnecting overlay — spec R5 ── */}
       {!connected && (
         <div
           className="absolute inset-0 rounded-xl bg-gray-950/80 flex items-center justify-center"
