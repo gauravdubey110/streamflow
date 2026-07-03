@@ -20,4 +20,37 @@ export async function fetchStreams(): Promise<StreamSummaryDTO[]> {
   return response.data
 }
 
+export type ChaosScenario = 'VIEWER_DROP' | 'BITRATE_SPIKE' | 'HIGH_BUFFER' | 'STREAM_DOWN'
+
+export interface InjectChaosResponse {
+  chaosId: string
+  startsAt: number
+}
+
+/**
+ * injectChaos — POST /api/v1/streams/{streamId}/chaos
+ *
+ * Spec ref: SPEC-16 R5.
+ */
+export async function injectChaos(
+  streamId: string,
+  scenario: ChaosScenario,
+  durationSeconds: number,
+): Promise<InjectChaosResponse> {
+  const response = await api.post<InjectChaosResponse>(
+    `/api/v1/streams/${streamId}/chaos`,
+    { scenario, durationSeconds },
+  )
+  return response.data
+}
+
+/**
+ * cancelChaos — DELETE /api/v1/streams/{streamId}/chaos/{chaosId}
+ *
+ * Spec ref: SPEC-16 R5.
+ */
+export async function cancelChaos(streamId: string, chaosId: string): Promise<void> {
+  await api.delete(`/api/v1/streams/${streamId}/chaos/${chaosId}`)
+}
+
 export default api
