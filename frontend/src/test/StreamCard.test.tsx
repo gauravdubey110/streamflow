@@ -27,6 +27,16 @@ vi.mock('../hooks/useStreamMetrics', () => ({
   useStreamMetrics: (streamId: string) => mockUseStreamMetrics(streamId),
 }))
 
+// Mock useAlerts so StreamCard does not trigger Zustand alert store.
+vi.mock('../hooks/useAlerts', () => ({
+  useAlerts: () => [],
+}))
+
+// Mock useCircuitBreakerState so StreamControls renders without a live WebSocket.
+vi.mock('../hooks/useCircuitBreakerState', () => ({
+  useCircuitBreakerState: () => ({ state: 'CLOSED', reason: null }),
+}))
+
 import type { ChartPoint } from '../hooks/useStreamMetrics'
 import type { StreamMetricSnapshot } from '../types/stream.types'
 
