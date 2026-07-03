@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Toaster } from 'react-hot-toast'
 import { LiveDot } from './components/common/LiveDot'
 import { StreamGrid } from './components/layout/StreamGrid'
 import { useWebSocket } from './hooks/useWebSocket'
@@ -114,6 +115,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+      {/* Toast notifications — SPEC-16 R7 */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#1f2937',
+            color: '#f9fafb',
+            border: '1px solid #374151',
+            fontSize: '0.8rem',
+          },
+        }}
+      />
+
       {/* Header */}
       <header className="border-b border-gray-800 px-6 py-3 flex items-center gap-3">
         <h1 className="text-xl font-bold tracking-tight">StreamFlow</h1>

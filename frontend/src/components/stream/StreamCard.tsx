@@ -1,11 +1,14 @@
 import clsx from 'clsx'
 import { useStreamMetrics } from '../../hooks/useStreamMetrics'
+import { useAlerts } from '../../hooks/useAlerts'
 import { LiveDot } from '../common/LiveDot'
 import { MetricCard } from '../common/MetricCard'
 import { BufferRateBadge } from './BufferRateBadge'
 import { HealthGauge } from './HealthGauge'
 import { QualityDistBar } from './QualityDistBar'
 import { ViewerCountChart } from './ViewerCountChart'
+import { AlertFeed } from '../alerts/AlertFeed'
+import { StreamControls } from '../controls/StreamControls'
 
 interface StreamCardProps {
   streamId: string
@@ -31,6 +34,7 @@ const fmt = new Intl.NumberFormat()
  */
 export function StreamCard({ streamId, streamName, fading = false }: StreamCardProps) {
   const { snapshot, history, connected } = useStreamMetrics(streamId)
+  const alerts = useAlerts(streamId)
 
   const displayName = streamName ?? snapshot?.streamName ?? streamId
 
@@ -112,6 +116,17 @@ export function StreamCard({ streamId, streamName, fading = false }: StreamCardP
           <QualityDistBar distribution={qualityDist} />
         </div>
       </div>
+
+      {/* ── Row 4: Alert Feed ── Spec-16 R2 */}
+      <div>
+        <span className="text-xs uppercase tracking-wide text-gray-400 block mb-1">
+          Alerts
+        </span>
+        <AlertFeed alerts={alerts} />
+      </div>
+
+      {/* ── Row 5: Stream Controls (CB indicator + Chaos button) ── Spec-16 R6 */}
+      <StreamControls streamId={streamId} />
 
       {/* ── Reconnecting overlay — spec R5 ── */}
       {!connected && (
