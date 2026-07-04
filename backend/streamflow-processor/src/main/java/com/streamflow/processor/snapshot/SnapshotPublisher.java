@@ -10,6 +10,9 @@ import com.streamflow.processor.aggregator.ViewerCountAggregator;
 import com.streamflow.processor.alert.AlertEngine;
 import com.streamflow.processor.circuitbreaker.AlertProcessorCircuitBreaker;
 import com.streamflow.processor.consumer.StreamHealthConsumer;
+import com.streamflow.processor.persistence.CassandraMetricSnapshotRepository;
+
+import java.util.Optional;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +75,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *             registry) instead of the previous hard-coded {@code "CLOSED"} placeholder.</li>
  * </ul>
  *
+ * <p>SPEC-17 additions:
+ * <ul>
+ *   <li>R5 – Calls {@link CassandraMetricSnapshotRepository#persist(StreamMetricSnapshotDTO)}
+ *             after each successful snapshot. The repository gates writes to once per minute
+ *             per stream, so calling it every second is safe — most calls are no-ops.</li>
+ * </ul>
+ *
  * <p><b>Scaling note (NFR1):</b> the single-threaded {@code @Scheduled} task is
  * sufficient for ≤ 10 streams. Beyond that, the task should be partitioned by
  * stream range or replaced with a reactive pipeline (e.g. Project Reactor with a
@@ -108,6 +118,7 @@ public class SnapshotPublisher {
     private final HealthScoreCalculator healthScoreCalculator;
     private final AlertEngine alertEngine;
     private final AlertProcessorCircuitBreaker alertProcessorCircuitBreaker;
+    private final Optional<CassandraMetricSnapshotRepository> cassandraMetricSnapshotRepository;
     private final ObjectMapper objectMapper;
     private final Timer snapshotTimer;
 
@@ -125,6 +136,7 @@ public class SnapshotPublisher {
             HealthScoreCalculator healthScoreCalculator,
             AlertEngine alertEngine,
             AlertProcessorCircuitBreaker alertProcessorCircuitBreaker,
+            Optional<CassandraMetricSnapshotRepository> cassandraMetricSnapshotRepository,
             ObjectMapper objectMapper,
             MeterRegistry meterRegistry) {
 
@@ -135,6 +147,7 @@ public class SnapshotPublisher {
         this.healthScoreCalculator = healthScoreCalculator;
         this.alertEngine = alertEngine;
         this.alertProcessorCircuitBreaker = alertProcessorCircuitBreaker;
+        this.cassandraMetricSnapshotRepository = cassandraMetricSnapshotRepository;
         this.objectMapper = objectMapper;
 
         // SPEC-05 task §5: Micrometer timer around the scheduled run
@@ -241,6 +254,9 @@ public class SnapshotPublisher {
 
         // SPEC-05 R4: publish to metrics-aggregated topic, key = streamId
         snapshotKafkaTemplate.send(KafkaTopics.METRICS_AGGREGATED, streamId, snapshot);
+
+        // SPEC-17 R5: persist snapshot to Cassandra once per minute per stream (async, optional)
+        cassandraMetricSnapshotRepository.ifPresent(repo -> repo.persist(snapshot));
 
         log.trace("Snapshot published: stream={} count={} delta={} health={}",
                 streamId, currentCount, delta, health.healthScore);

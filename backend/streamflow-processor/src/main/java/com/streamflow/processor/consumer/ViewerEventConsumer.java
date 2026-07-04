@@ -4,6 +4,7 @@ import com.streamflow.common.dto.ViewerEventDTO;
 import com.streamflow.common.enums.EventType;
 import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
+import com.streamflow.processor.persistence.CassandraViewerEventRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -12,6 +13,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Kafka consumer for the {@code viewer-events} topic.
@@ -37,6 +39,12 @@ import java.time.Duration;
  *             so that {@link com.streamflow.processor.snapshot.SnapshotPublisher}
  *             can discover active streams via {@code SMEMBERS active_streams}.</li>
  * </ul>
+ *
+ * <p>SPEC-17 addition:
+ * <ul>
+ *   <li>R5 – Every viewer event is written asynchronously to the Cassandra
+ *             {@code viewer_events} table via {@link CassandraViewerEventRepository}.</li>
+ * </ul>
  */
 @Slf4j
 @Component
@@ -51,13 +59,16 @@ public class ViewerEventConsumer {
     private final ViewerCountAggregator viewerCountAggregator;
     private final QualityDistAggregator qualityDistAggregator;
     private final RedisTemplate<String, String> redisTemplate;
+    private final Optional<CassandraViewerEventRepository> cassandraViewerEventRepository;
 
     public ViewerEventConsumer(ViewerCountAggregator viewerCountAggregator,
                                QualityDistAggregator qualityDistAggregator,
-                               RedisTemplate<String, String> redisTemplate) {
+                               RedisTemplate<String, String> redisTemplate,
+                               Optional<CassandraViewerEventRepository> cassandraViewerEventRepository) {
         this.viewerCountAggregator = viewerCountAggregator;
         this.qualityDistAggregator = qualityDistAggregator;
         this.redisTemplate = redisTemplate;
+        this.cassandraViewerEventRepository = cassandraViewerEventRepository;
     }
 
     /**
@@ -95,6 +106,9 @@ public class ViewerEventConsumer {
 
     private void processEvent(ViewerEventDTO event) {
         EventType type = event.eventType();
+
+        // SPEC-17 R5: persist every event asynchronously to Cassandra (non-blocking, optional)
+        cassandraViewerEventRepository.ifPresent(repo -> repo.persist(event));
 
         if (type == EventType.JOIN) {
             viewerCountAggregator.recordJoin(event.streamId(), event.viewerId(), event.timestamp());
