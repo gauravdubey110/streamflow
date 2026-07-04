@@ -83,3 +83,50 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
+
+  # ── Cassandra (single node) ───────────────────────────────────────
+  # SPEC-17: added for time-series persistence and historical replay.
+  cassandra:
+    image: cassandra:4.1
+    container_name: streamflow-cassandra
+    networks:
+      - streamflow-net
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: streamflow-cluster
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      MAX_HEAP_SIZE: "512M"
+      HEAP_NEWSIZE: "128M"
+    healthcheck:
+      # cqlsh exits 0 when Cassandra is fully ready to accept queries
+      test: ["CMD-SHELL", "cqlsh -e 'describe keyspaces' 2>/dev/null && echo ok || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
+
+  # ── Cassandra schema init (one-shot) ──────────────────────────────
+  # SPEC-17: runs once after Cassandra is healthy; exits 0 when done.
+  # The service depends on the cassandra healthcheck passing so that
+  # cqlsh can connect immediately without manual sleep loops.
+  cassandra-init:
+    image: cassandra:4.1
+    container_name: streamflow-cassandra-init
+    networks:
+      - streamflow-net
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    volumes:
+      - ./cassandra/init.cql:/init.cql:ro
+    # -u cassandra:cassandra are the default credentials for the plain authenticator.
+    # If the default authenticator is AllowAllAuthenticator (the default) these flags
+    # are harmless.  --request-timeout 30 prevents the client from hanging.
+    command: >
+      cqlsh cassandra 9042
+        --request-timeout=30
+        -f /init.cql
+    restart: "no"
