@@ -106,6 +106,7 @@ class SnapshotPublisherTest {
                 new HealthScoreCalculator(),
                 alertEngine,
                 alertProcessorCircuitBreaker,
+                java.util.Optional.empty(),   // SPEC-17: no Cassandra in unit tests
                 new ObjectMapper(),
                 new SimpleMeterRegistry()
         );
