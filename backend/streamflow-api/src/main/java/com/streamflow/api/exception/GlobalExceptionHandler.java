@@ -82,4 +82,25 @@ public class GlobalExceptionHandler {
         problem.setProperty("timestamp", Instant.now().toEpochMilli());
         return problem;
     }
+
+    /**
+     * Maps {@link HistoryRangeException} to HTTP 400 with RFC-7807 body.
+     *
+     * <p>SPEC-18 R3: fired when the requested {@code [from, to]} window exceeds the configured
+     * maximum (default 24 hours). The response body includes the maximum allowed range and the
+     * actual requested span for debugging.
+     */
+    @ExceptionHandler(HistoryRangeException.class)
+    public ProblemDetail handleHistoryRange(HistoryRangeException ex) {
+        log.warn("HistoryRangeExceeded: {}", ex.getMessage());
+
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create("https://streamflow.example/problems/history-range-exceeded"));
+        problem.setTitle("History Range Exceeded");
+        problem.setProperty("maxRangeHours", ex.getMaxHours());
+        problem.setProperty("fromMs", ex.getFromMs());
+        problem.setProperty("toMs", ex.getToMs());
+        problem.setProperty("timestamp", Instant.now().toEpochMilli());
+        return problem;
+    }
 }
