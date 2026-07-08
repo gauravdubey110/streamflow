@@ -102,6 +102,12 @@
       <artifactId>kafka</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Cassandra Testcontainer — SPEC-18 HistoryControllerIT -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>cassandra</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
