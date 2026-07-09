@@ -1,3 +1,24 @@
+/**
+ * Granularity for historical queries.
+ * Spec ref: SPEC-19 R2.
+ */
+export type HistoryGranularity = 'MINUTE' | 'HOUR'
+
+/**
+ * One data point returned by GET /api/v1/streams/{id}/history.
+ * Mirrors StreamMetricSnapshotDTO (subset of fields used for replay chart).
+ * Spec ref: SPEC-19 R3.
+ */
+export interface HistoryPoint {
+  streamId: string
+  snapshotTs: number
+  liveViewerCount: number
+  bufferRatePct: number
+  p95LatencyMs: number
+  healthScore: number
+  qualityDistribution: Record<string, number>
+}
+
 // Mirrors StreamMetricSnapshotDTO from streamflow-common (backend)
 export interface StreamMetricSnapshot {
   streamId: string
