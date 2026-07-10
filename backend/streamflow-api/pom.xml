@@ -119,6 +119,21 @@
           <execution>
             <goals>
               <goal>repackage</goal>
+              <!-- SPEC-20 R5: exposes build metadata via /actuator/info -->
+              <goal>build-info</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- SPEC-20 R5: generate git.properties for /actuator/info git details -->
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>get-git-info</id>
+            <goals>
+              <goal>revision</goal>
             </goals>
           </execution>
         </executions>

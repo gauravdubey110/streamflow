@@ -112,6 +112,30 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
         </plugin>
+
+        <!--
+          SPEC-20 R5: git-commit-id-maven-plugin generates git.properties so that
+          /actuator/info exposes the git commit hash + build timestamp.
+          Each runnable module activates this plugin (not common, which is library-only).
+        -->
+        <plugin>
+          <groupId>io.github.git-commit-id</groupId>
+          <artifactId>git-commit-id-maven-plugin</artifactId>
+          <version>8.0.2</version>
+          <configuration>
+            <generateGitPropertiesFile>true</generateGitPropertiesFile>
+            <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+            <includeOnlyProperties>
+              <includeOnlyProperty>^git.commit.id</includeOnlyProperty>
+              <includeOnlyProperty>^git.commit.time</includeOnlyProperty>
+              <includeOnlyProperty>^git.branch</includeOnlyProperty>
+              <includeOnlyProperty>^git.build.time</includeOnlyProperty>
+            </includeOnlyProperties>
+            <commitIdGenerationMode>full</commitIdGenerationMode>
+            <failOnNoGitDirectory>false</failOnNoGitDirectory>
+            <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
