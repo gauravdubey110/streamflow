@@ -13,10 +13,18 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+  info:
+    git:
+      mode: simple
+    build:
+      enabled: true
+  metrics:
+    tags:
+      application: streamflow-producer
 
 # Simulation configuration — SPEC-03
 # Override streamflow.simulation.tps via env var STREAMFLOW_SIMULATION_TPS

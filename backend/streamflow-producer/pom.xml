@@ -44,6 +44,12 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
 
+    <!-- Micrometer Prometheus registry — SPEC-20 R1 -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
     <!-- Bean Validation — for @Valid on InternalChaosController (SPEC-13 R6) -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -91,6 +97,22 @@
           <execution>
             <goals>
               <goal>repackage</goal>
+              <!-- SPEC-20 R5: build-info goal writes META-INF/build-info.properties,
+                   which Spring Boot Actuator exposes via /actuator/info -->
+              <goal>build-info</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- SPEC-20 R5: generate git.properties for /actuator/info git details -->
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>get-git-info</id>
+            <goals>
+              <goal>revision</goal>
             </goals>
           </execution>
         </executions>
