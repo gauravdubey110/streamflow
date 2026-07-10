@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useState } from 'react'
 import { useStreamMetrics } from '../../hooks/useStreamMetrics'
 import { useAlerts } from '../../hooks/useAlerts'
 import { LiveDot } from '../common/LiveDot'
@@ -9,6 +10,7 @@ import { QualityDistBar } from './QualityDistBar'
 import { ViewerCountChart } from './ViewerCountChart'
 import { AlertFeed } from '../alerts/AlertFeed'
 import { StreamControls } from '../controls/StreamControls'
+import { HistoryModal } from '../history/HistoryModal'
 
 interface StreamCardProps {
   streamId: string
@@ -35,6 +37,7 @@ const fmt = new Intl.NumberFormat()
 export function StreamCard({ streamId, streamName, fading = false }: StreamCardProps) {
   const { snapshot, history, connected } = useStreamMetrics(streamId)
   const alerts = useAlerts(streamId)
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   const displayName = streamName ?? snapshot?.streamName ?? streamId
 
@@ -127,6 +130,27 @@ export function StreamCard({ streamId, streamName, fading = false }: StreamCardP
 
       {/* ── Row 5: Stream Controls (CB indicator + Chaos button) ── Spec-16 R6 */}
       <StreamControls streamId={streamId} />
+
+      {/* ── Row 6: History button ── Spec-19 R1 */}
+      <div>
+        <button
+          onClick={() => setHistoryOpen(true)}
+          className="text-xs text-gray-400 hover:text-blue-400 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
+          aria-label={`Open historical replay for ${displayName}`}
+          data-testid={`history-btn-${streamId}`}
+        >
+          History
+        </button>
+      </div>
+
+      {/* ── History Modal ── Spec-19 R1 */}
+      {historyOpen && (
+        <HistoryModal
+          streamId={streamId}
+          streamName={streamName ?? snapshot?.streamName}
+          onClose={() => setHistoryOpen(false)}
+        />
+      )}
 
       {/* ── Reconnecting overlay — spec R5 ── */}
       {!connected && (
