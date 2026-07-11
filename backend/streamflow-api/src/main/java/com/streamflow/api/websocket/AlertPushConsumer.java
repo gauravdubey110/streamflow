@@ -1,5 +1,6 @@
 package com.streamflow.api.websocket;
 
+import com.streamflow.api.metrics.ApiMetrics;
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.AlertEventDTO;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AlertPushConsumer {
     private static final String ALERTS_DESTINATION_SUFFIX = "/alerts";
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApiMetrics apiMetrics;
 
     /**
      * Receives an alert from the {@code alerts} Kafka topic and broadcasts it
@@ -60,6 +62,8 @@ public class AlertPushConsumer {
         );
 
         messagingTemplate.convertAndSend(destination, message);
+        // SPEC-20 R3: count events consumed from alerts topic
+        apiMetrics.incrementAlertsConsumed();
         log.info("SPEC-14: alert pushed to {}: alertId={} severity={} type={}",
                 destination, alert.alertId(), alert.severity(), alert.alertType());
     }

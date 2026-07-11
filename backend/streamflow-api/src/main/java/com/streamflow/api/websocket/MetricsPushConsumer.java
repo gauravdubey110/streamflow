@@ -1,5 +1,6 @@
 package com.streamflow.api.websocket;
 
+import com.streamflow.api.metrics.ApiMetrics;
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class MetricsPushConsumer {
     private static final String METRICS_DESTINATION_SUFFIX = "/metrics";
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final ApiMetrics apiMetrics;
 
     /**
      * Receives a metric snapshot from Kafka and broadcasts it over STOMP.
@@ -50,6 +52,8 @@ public class MetricsPushConsumer {
     public void consume(@Payload StreamMetricSnapshotDTO snapshot) {
         String destination = METRICS_DESTINATION_PREFIX + snapshot.streamId() + METRICS_DESTINATION_SUFFIX;
         messagingTemplate.convertAndSend(destination, snapshot);
+        // SPEC-20 R3: count events consumed from metrics-aggregated topic
+        apiMetrics.incrementMetricsConsumed();
         log.trace("Pushed snapshot to {} — viewers={}", destination, snapshot.liveViewerCount());
     }
 }
