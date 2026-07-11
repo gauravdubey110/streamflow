@@ -6,6 +6,7 @@ import com.streamflow.producer.chaos.ChaosInjector;
 import com.streamflow.producer.chaos.ChaosScenario;
 import com.streamflow.producer.config.SimulationConfig;
 import com.streamflow.producer.config.SimulationConfig.StreamDefinition;
+import com.streamflow.producer.metrics.ProducerMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -58,6 +59,7 @@ public class StreamHealthProducer {
     private final SimulationConfig simulationConfig;
     private final KafkaTemplate<String, StreamHealthEventDTO> healthEventKafkaTemplate;
     private final ChaosInjector chaosInjector;
+    private final ProducerMetrics producerMetrics;
     private final Random random = new Random();
 
     /**
@@ -99,6 +101,8 @@ public class StreamHealthProducer {
                                 log.trace("Health event sent: stream={} bitrate={} frameDrop={} latency={}",
                                         stream.getId(), event.bitrateKbps(),
                                         event.frameDropRate(), event.encoderLatencyMs());
+                                // SPEC-20 R3: increment health events published counter
+                                producerMetrics.incrementHealthEventsPublished();
                             }
                         });
             } catch (Exception e) {

@@ -2,6 +2,7 @@ package com.streamflow.producer.simulator;
 
 import com.streamflow.common.constants.KafkaTopics;
 import com.streamflow.common.dto.ViewerEventDTO;
+import com.streamflow.producer.metrics.ProducerMetrics;
 import com.streamflow.producer.strategy.EventGenerationStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -31,6 +32,7 @@ public class ViewerEventProducer {
     private final int perStreamTps;
     private final KafkaTemplate<String, ViewerEventDTO> kafkaTemplate;
     private final EventGenerationStrategy strategy;
+    private final ProducerMetrics producerMetrics;
 
     /** Epoch-nanotime of the last successfully sent event; 0 = never sent. */
     private final AtomicLong lastPublishNs = new AtomicLong(0);
@@ -41,12 +43,14 @@ public class ViewerEventProducer {
                                String streamName,
                                int perStreamTps,
                                KafkaTemplate<String, ViewerEventDTO> kafkaTemplate,
-                               EventGenerationStrategy strategy) {
+                               EventGenerationStrategy strategy,
+                               ProducerMetrics producerMetrics) {
         this.streamId = streamId;
         this.streamName = streamName;
         this.perStreamTps = perStreamTps;
         this.kafkaTemplate = kafkaTemplate;
         this.strategy = strategy;
+        this.producerMetrics = producerMetrics;
         // Named thread so logs are easy to correlate; must be created after streamId is set
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "vep-" + streamId);
@@ -121,6 +125,8 @@ public class ViewerEventProducer {
                             log.warn("Failed to send event for stream={}: {}", streamId, ex.getMessage());
                         } else {
                             lastPublishNs.set(System.nanoTime());
+                            // SPEC-20 R3: increment published counter on successful send
+                            producerMetrics.incrementViewerEventsPublished();
                         }
                     });
         } catch (Exception e) {

@@ -3,6 +3,7 @@ package com.streamflow.producer.simulator;
 import com.streamflow.common.dto.ViewerEventDTO;
 import com.streamflow.producer.config.SimulationConfig;
 import com.streamflow.producer.config.SimulationConfig.StreamDefinition;
+import com.streamflow.producer.metrics.ProducerMetrics;
 import com.streamflow.producer.strategy.EventGenerationStrategy;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -32,6 +33,7 @@ public class StreamSimulator {
     private final SimulationConfig simulationConfig;
     private final KafkaTemplate<String, ViewerEventDTO> viewerEventKafkaTemplate;
     private final EventGenerationStrategy eventGenerationStrategy;
+    private final ProducerMetrics producerMetrics;
 
     private final List<ViewerEventProducer> producers = new ArrayList<>();
 
@@ -62,7 +64,8 @@ public class StreamSimulator {
                     def.getName(),
                     perStreamTps,
                     viewerEventKafkaTemplate,
-                    eventGenerationStrategy
+                    eventGenerationStrategy,
+                    producerMetrics
             );
             producer.start();
             producers.add(producer);
