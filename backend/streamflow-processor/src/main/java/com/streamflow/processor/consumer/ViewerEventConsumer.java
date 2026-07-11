@@ -4,6 +4,7 @@ import com.streamflow.common.dto.ViewerEventDTO;
 import com.streamflow.common.enums.EventType;
 import com.streamflow.processor.aggregator.QualityDistAggregator;
 import com.streamflow.processor.aggregator.ViewerCountAggregator;
+import com.streamflow.processor.metrics.ProcessorMetrics;
 import com.streamflow.processor.persistence.CassandraViewerEventRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -60,15 +61,18 @@ public class ViewerEventConsumer {
     private final QualityDistAggregator qualityDistAggregator;
     private final RedisTemplate<String, String> redisTemplate;
     private final Optional<CassandraViewerEventRepository> cassandraViewerEventRepository;
+    private final ProcessorMetrics processorMetrics;
 
     public ViewerEventConsumer(ViewerCountAggregator viewerCountAggregator,
                                QualityDistAggregator qualityDistAggregator,
                                RedisTemplate<String, String> redisTemplate,
-                               Optional<CassandraViewerEventRepository> cassandraViewerEventRepository) {
+                               Optional<CassandraViewerEventRepository> cassandraViewerEventRepository,
+                               ProcessorMetrics processorMetrics) {
         this.viewerCountAggregator = viewerCountAggregator;
         this.qualityDistAggregator = qualityDistAggregator;
         this.redisTemplate = redisTemplate;
         this.cassandraViewerEventRepository = cassandraViewerEventRepository;
+        this.processorMetrics = processorMetrics;
     }
 
     /**
@@ -94,6 +98,8 @@ public class ViewerEventConsumer {
             processEvent(event);
             // SPEC-04 R6: ack only after Redis write succeeds
             acknowledgment.acknowledge();
+            // SPEC-20 R3: count successfully processed viewer events
+            processorMetrics.incrementViewerEventsConsumed();
         } catch (Exception e) {
             // Let the exception propagate so the error handler can retry / DLT
             log.error("Failed to process viewer event for stream={} viewer={}: {}",

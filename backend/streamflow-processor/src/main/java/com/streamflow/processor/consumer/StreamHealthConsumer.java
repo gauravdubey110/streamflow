@@ -1,6 +1,7 @@
 package com.streamflow.processor.consumer;
 
 import com.streamflow.common.dto.StreamHealthEventDTO;
+import com.streamflow.processor.metrics.ProcessorMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -53,6 +54,7 @@ public class StreamHealthConsumer {
     public static final Duration HEALTH_TTL = Duration.ofSeconds(60);
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final ProcessorMetrics processorMetrics;
 
     /**
      * Processes a single stream-health event.
@@ -80,6 +82,9 @@ public class StreamHealthConsumer {
 
         redisTemplate.opsForHash().putAll(key, fields);
         redisTemplate.expire(key, HEALTH_TTL);
+
+        // SPEC-20 R3: count successfully processed health events
+        processorMetrics.incrementHealthEventsConsumed();
 
         log.trace("Health event cached: stream={} bitrate={} frameDrop={} latency={}",
                 event.streamId(), event.bitrateKbps(),

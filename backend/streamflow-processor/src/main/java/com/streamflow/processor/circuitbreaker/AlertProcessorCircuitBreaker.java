@@ -1,5 +1,6 @@
 package com.streamflow.processor.circuitbreaker;
 
+import com.streamflow.processor.metrics.ProcessorMetrics;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import jakarta.annotation.PostConstruct;
@@ -52,6 +53,7 @@ public class AlertProcessorCircuitBreaker {
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RedisTemplate<String, String> redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
+    private final ProcessorMetrics processorMetrics;
 
     /**
      * Registers the state-transition listener after the bean is initialised.
@@ -78,13 +80,19 @@ public class AlertProcessorCircuitBreaker {
             // SPEC-12 R5: persist state to Redis
             persistStateToRedis(currentState);
 
+            // SPEC-20 R3: update CB state gauge
+            processorMetrics.updateCbState(currentState);
+
             // SPEC-12 R6: publish Spring event for SPEC-14 WebSocket broadcast
             eventPublisher.publishEvent(
                     new CircuitBreakerStateEvent(this, previousState, currentState, reason, now));
         });
 
         // Write initial state on startup so the dashboard always has a value
-        persistStateToRedis(cb.getState().name());
+        String initialState = cb.getState().name();
+        persistStateToRedis(initialState);
+        // SPEC-20 R3: initialise the gauge with the current state
+        processorMetrics.updateCbState(initialState);
         log.info("SPEC-12: AlertProcessorCircuitBreaker listener registered; initial state={}",
                 cb.getState().name());
     }

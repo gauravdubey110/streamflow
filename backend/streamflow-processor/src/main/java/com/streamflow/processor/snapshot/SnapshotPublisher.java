@@ -150,8 +150,9 @@ public class SnapshotPublisher {
         this.cassandraMetricSnapshotRepository = cassandraMetricSnapshotRepository;
         this.objectMapper = objectMapper;
 
-        // SPEC-05 task §5: Micrometer timer around the scheduled run
-        this.snapshotTimer = Timer.builder("streamflow.snapshot.publish")
+        // SPEC-05 task §5 / SPEC-20 R3: Micrometer timer around the scheduled run
+        // Named streamflow.snapshot.duration per SPEC-20 R3 (renamed from streamflow.snapshot.publish)
+        this.snapshotTimer = Timer.builder("streamflow.snapshot.duration")
                 .description("Time taken for the snapshot-publish scheduled run")
                 .register(meterRegistry);
     }

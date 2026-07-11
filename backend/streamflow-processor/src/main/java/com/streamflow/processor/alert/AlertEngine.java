@@ -3,6 +3,7 @@ package com.streamflow.processor.alert;
 import com.streamflow.common.dto.AlertEventDTO;
 import com.streamflow.common.dto.StreamMetricSnapshotDTO;
 import com.streamflow.common.enums.AlertType;
+import com.streamflow.processor.metrics.ProcessorMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -57,18 +58,21 @@ public class AlertEngine {
     private final AlertPublisher alertPublisher;
     private final long cooldownSeconds;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ProcessorMetrics processorMetrics;
 
     public AlertEngine(
             RedisTemplate<String, String> redisTemplate,
             List<AlertRule> rules,
             AlertPublisher alertPublisher,
             @Value("${streamflow.alerts.cooldown-seconds:60}") long cooldownSeconds,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            ProcessorMetrics processorMetrics) {
         this.redisTemplate = redisTemplate;
         this.rules = rules;
         this.alertPublisher = alertPublisher;
         this.cooldownSeconds = cooldownSeconds;
         this.objectMapper = objectMapper;
+        this.processorMetrics = processorMetrics;
     }
 
     // ── Scheduled evaluation ──────────────────────────────────────────────────
@@ -193,6 +197,9 @@ public class AlertEngine {
         // Not deduped — publish and set dedup key
         AlertEventDTO alert = result.get();
         alertPublisher.publish(alert);
+
+        // SPEC-20 R3: increment alerts.fired counter tagged by severity + alertType
+        processorMetrics.incrementAlertsFired(alert.severity(), alert.alertType());
 
         // Set dedup key with cooldown TTL
         redisTemplate.opsForValue().set(dedupKey, alert.alertId(), Duration.ofSeconds(cooldownSeconds));
