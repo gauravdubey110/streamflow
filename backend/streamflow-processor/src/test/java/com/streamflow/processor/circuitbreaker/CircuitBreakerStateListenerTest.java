@@ -1,5 +1,6 @@
 package com.streamflow.processor.circuitbreaker;
 
+import com.streamflow.processor.metrics.ProcessorMetrics;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -50,6 +51,9 @@ class CircuitBreakerStateListenerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private ProcessorMetrics processorMetrics;
+
     private CircuitBreakerRegistry registry;
     private AlertProcessorCircuitBreaker cbComponent;
 
@@ -71,7 +75,7 @@ class CircuitBreakerStateListenerTest {
 
         registry = CircuitBreakerRegistry.of(config);
 
-        cbComponent = new AlertProcessorCircuitBreaker(registry, redisTemplate, eventPublisher);
+        cbComponent = new AlertProcessorCircuitBreaker(registry, redisTemplate, eventPublisher, processorMetrics);
         cbComponent.registerStateChangeListener();
     }
 

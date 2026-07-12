@@ -1,5 +1,6 @@
 package com.streamflow.api.websocket;
 
+import com.streamflow.api.metrics.ApiMetrics;
 import com.streamflow.common.dto.AlertEventDTO;
 import com.streamflow.common.enums.AlertSeverity;
 import com.streamflow.common.enums.AlertType;
@@ -32,6 +33,9 @@ class AlertPushConsumerTest {
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
+
+    @Mock
+    private ApiMetrics apiMetrics;
 
     @InjectMocks
     private AlertPushConsumer consumer;
