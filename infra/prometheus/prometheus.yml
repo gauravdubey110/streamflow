@@ -1,0 +1,52 @@
+# StreamFlow — Prometheus scrape configuration
+# SPEC-20 R4: Scrapes /actuator/prometheus from all 3 backend services every 10s.
+# SPEC-20 NFR2: 10s scrape interval; cardinality guards are enforced in each service's
+# MeterRegistry config (MeterFilter.maximumAllowableTags).
+#
+# When running all services in the Docker network (docker-compose), backend services
+# are reachable at their container names. When running services on the host machine,
+# use host.docker.internal (Docker Desktop) or the host's LAN IP.
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  external_labels:
+    environment: development
+    project: streamflow
+
+scrape_configs:
+
+  # ── streamflow-api (port 8080) ──────────────────────────────────────
+  - job_name: "streamflow-api"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          # When running with docker-compose full-stack (SPEC-21), use service name.
+          # When running services on the host, use host.docker.internal:8080.
+          - "host.docker.internal:8080"
+        labels:
+          service: streamflow-api
+
+  # ── streamflow-processor (port 8082) ───────────────────────────────
+  - job_name: "streamflow-processor"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - "host.docker.internal:8082"
+        labels:
+          service: streamflow-processor
+
+  # ── streamflow-producer (port 8081) ────────────────────────────────
+  - job_name: "streamflow-producer"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - "host.docker.internal:8081"
+        labels:
+          service: streamflow-producer
+
+  # ── Prometheus self-scrape ─────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"

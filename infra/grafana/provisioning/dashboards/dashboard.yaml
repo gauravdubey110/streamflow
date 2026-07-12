@@ -1,0 +1,13 @@
+# SPEC-20 R4: Auto-provision the StreamFlow dashboard from the JSON file.
+# Grafana reads this file on startup and loads all dashboards from the folder.
+apiVersion: 1
+
+providers:
+  - name: StreamFlow
+    orgId: 1
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
