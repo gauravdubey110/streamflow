@@ -9,9 +9,15 @@ on:
     branches:
       - main
 
+# Cancel in-flight runs on the same branch when a new push arrives
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  # ── Backend: compile + test ──────────────────────────────────────────────
   backend:
-    name: Backend — build & test
+    name: Backend — build & test (Java 17)
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +31,147 @@ jobs:
           distribution: temurin
           cache: maven
 
-      - name: Build (skip tests — no business logic yet)
-        run: mvn -B -f backend/pom.xml verify -DskipTests
+      # SPEC-21 R5: Spotless enforces Google Java Format across all modules.
+      - name: Check code format (Spotless)
+        run: mvn -B -f backend/pom.xml spotless:check
 
-  # Frontend job added in SPEC-07 when the React app exists.
+      # Testcontainers requires Docker; ubuntu-latest runners have Docker pre-installed.
+      - name: Build and run all tests
+        run: mvn -B -f backend/pom.xml verify
+        env:
+          # Ryuk is the Testcontainers resource reaper; disable it in CI because
+          # it requires Docker socket privileges that are not always granted.
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      - name: Upload Surefire reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: |
+            backend/**/target/surefire-reports/*.xml
+          retention-days: 7
+
+  # ── Frontend: lint + test + build ────────────────────────────────────────
+  frontend:
+    name: Frontend — lint, test & build (Node 20)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload dist on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+
+  # ── Docker: build & push to GHCR (main branch only) ─────────────────────
+  docker:
+    name: Docker — build & push to GHCR
+    runs-on: ubuntu-latest
+    # Only push images when merging/pushing to main; PRs only build (no push).
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [backend, frontend]
+    permissions:
+      contents: read
+      packages: write   # required to push to GHCR
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (enables BuildKit cache mounts)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image prefix
+        id: vars
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "prefix=ghcr.io/${REPO_LC}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # ── producer ────────────────────────────────────────────────────────
+      - name: Build & push producer image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/streamflow-producer/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.prefix }}/streamflow-producer:latest
+            ${{ steps.vars.outputs.prefix }}/streamflow-producer:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha,scope=producer
+          cache-to: type=gha,mode=max,scope=producer
+
+      # ── processor ───────────────────────────────────────────────────────
+      - name: Build & push processor image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/streamflow-processor/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.prefix }}/streamflow-processor:latest
+            ${{ steps.vars.outputs.prefix }}/streamflow-processor:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha,scope=processor
+          cache-to: type=gha,mode=max,scope=processor
+
+      # ── api ─────────────────────────────────────────────────────────────
+      - name: Build & push api image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: backend/streamflow-api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.prefix }}/streamflow-api:latest
+            ${{ steps.vars.outputs.prefix }}/streamflow-api:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      # ── frontend ─────────────────────────────────────────────────────────
+      - name: Build & push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.prefix }}/streamflow-frontend:latest
+            ${{ steps.vars.outputs.prefix }}/streamflow-frontend:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
