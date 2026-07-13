@@ -1,0 +1,50 @@
+# StreamFlow — Prometheus scrape configuration for full-stack Docker Compose
+# SPEC-21 R1: All services run inside the `streamflow-net` Docker network.
+# Service names resolve via Docker DNS (producer:8081, processor:8082, api:8080).
+# This file is mounted into the Prometheus container in docker-compose.yml
+# (root-level full-stack compose).
+#
+# For the dev compose (infra/docker-compose.dev.yml) where services run on the
+# host, use infra/prometheus/prometheus.yml (targets: host.docker.internal:*).
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  external_labels:
+    environment: docker-compose
+    project: streamflow
+
+scrape_configs:
+
+  # ── streamflow-api (port 8080) ───────────────────────────────────────────
+  - job_name: "streamflow-api"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - "api:8080"
+        labels:
+          service: streamflow-api
+
+  # ── streamflow-processor (port 8082) ─────────────────────────────────────
+  - job_name: "streamflow-processor"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - "processor:8082"
+        labels:
+          service: streamflow-processor
+
+  # ── streamflow-producer (port 8081) ──────────────────────────────────────
+  - job_name: "streamflow-producer"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - "producer:8081"
+        labels:
+          service: streamflow-producer
+
+  # ── Prometheus self-scrape ────────────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
