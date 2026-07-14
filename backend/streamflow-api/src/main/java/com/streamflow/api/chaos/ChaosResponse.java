@@ -5,10 +5,7 @@ package com.streamflow.api.chaos;
  *
  * <p>SPEC-13 R4: returned by {@code POST /api/v1/streams/{streamId}/chaos} as HTTP 202 Accepted.
  *
- * @param chaosId  unique identifier for the chaos session (UUID)
+ * @param chaosId unique identifier for the chaos session (UUID)
  * @param startsAt epoch-millis when the chaos session was initiated
  */
-public record ChaosResponse(
-        String chaosId,
-        long startsAt
-) {}
+public record ChaosResponse(String chaosId, long startsAt) {}

@@ -7,7 +7,7 @@ package com.streamflow.api.exception;
  */
 public class StreamNotFoundException extends RuntimeException {
 
-    public StreamNotFoundException(String streamId) {
-        super("No active stream found for id: " + streamId);
-    }
+  public StreamNotFoundException(String streamId) {
+    super("No active stream found for id: " + streamId);
+  }
 }

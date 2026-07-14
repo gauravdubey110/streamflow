@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * Entry point for the StreamFlow API Gateway service.
  *
  * <p>Responsibilities (implemented in later specs):
+ *
  * <ul>
  *   <li>SPEC-06: STOMP/SockJS WebSocket config + metrics push to /topic/streams/{id}/metrics
  *   <li>SPEC-06: REST GET /api/v1/streams/** endpoints
@@ -18,7 +19,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class StreamApiApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(StreamApiApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(StreamApiApplication.class, args);
+  }
 }

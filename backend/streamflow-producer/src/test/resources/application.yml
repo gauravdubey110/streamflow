@@ -1,0 +1,20 @@
+# Test application configuration — overrides are applied per-test via @DynamicPropertySource
+# Kafka bootstrap-servers will be overridden by Testcontainers in integration tests.
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092   # placeholder; overridden by @DynamicPropertySource
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+streamflow:
+  simulation:
+    enabled: true
+    tps: 200
+    streams:
+      - id: stream-001
+        name: "Test Stream"
+        base-viewers: 1000

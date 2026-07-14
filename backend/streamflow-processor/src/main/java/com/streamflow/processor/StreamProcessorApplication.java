@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * Entry point for the StreamFlow Processor service.
  *
  * <p>Responsibilities (implemented in later specs):
+ *
  * <ul>
  *   <li>SPEC-04: Consume {@code viewer-events}, maintain Redis sliding-window viewer count
  *   <li>SPEC-05: Publish metric snapshots to Redis + {@code metrics-aggregated} topic
@@ -22,7 +23,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class StreamProcessorApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(StreamProcessorApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(StreamProcessorApplication.class, args);
+  }
 }

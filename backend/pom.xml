@@ -136,6 +136,32 @@
             <failOnUnableToExtractRepoInfo>false</failOnUnableToExtractRepoInfo>
           </configuration>
         </plugin>
+
+        <!--
+          SPEC-21 R5: Spotless enforces consistent Java formatting using
+          Google Java Format 1.22.0 (supports Java 17).
+          Run `mvn spotless:apply` to auto-format; `mvn spotless:check` in CI.
+          Activated in the parent build section so all modules inherit it.
+        -->
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <version>2.43.0</version>
+          <configuration>
+            <java>
+              <googleJavaFormat>
+                <version>1.22.0</version>
+                <style>GOOGLE</style>
+              </googleJavaFormat>
+              <!-- Remove unused imports -->
+              <removeUnusedImports/>
+              <!-- Enforce consistent end-of-file newline -->
+              <endWithNewline/>
+              <!-- Trim trailing whitespace -->
+              <trimTrailingWhitespace/>
+            </java>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>

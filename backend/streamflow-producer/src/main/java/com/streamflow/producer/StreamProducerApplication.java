@@ -10,6 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * Entry point for the StreamFlow Producer service.
  *
  * <p>Responsibilities:
+ *
  * <ul>
  *   <li>SPEC-03: Publish viewer events to {@code viewer-events} Kafka topic at configurable TPS
  *   <li>SPEC-09: Publish stream-health events to {@code stream-health} topic
@@ -21,7 +22,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties(SimulationConfig.class)
 public class StreamProducerApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(StreamProducerApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(StreamProducerApplication.class, args);
+  }
 }
