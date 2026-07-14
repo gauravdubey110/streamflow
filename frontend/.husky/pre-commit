@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# SPEC-21 R5: pre-commit hook — runs lint-staged on staged TS/TSX files.
+# To enable: cd frontend && npm install --save-dev husky lint-staged && npx husky install
+. "$(dirname -- "$0")/_/husky.sh"
+
+cd "$(git rev-parse --show-toplevel)/frontend"
+npx lint-staged
