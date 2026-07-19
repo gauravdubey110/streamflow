@@ -31,7 +31,10 @@ import org.springframework.stereotype.Component;
  *   <li>{@code streamflow.cb.state}: 1 series.
  * </ul>
  */
-@Component
+// Bean name pinned to avoid colliding with Micrometer's built-in
+// io.micrometer.core.instrument.binder.system.ProcessorMetrics, which Spring Boot Actuator's
+// SystemMetricsAutoConfiguration also registers under the default name "processorMetrics".
+@Component("streamflowProcessorMetrics")
 public class ProcessorMetrics {
 
   /** Metric name: events consumed from Kafka (SPEC-20 R3). */

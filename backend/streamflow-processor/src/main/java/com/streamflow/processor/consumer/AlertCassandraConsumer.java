@@ -2,9 +2,9 @@ package com.streamflow.processor.consumer;
 
 import com.streamflow.common.dto.AlertEventDTO;
 import com.streamflow.processor.persistence.CassandraAlertRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -27,14 +27,20 @@ import org.springframework.stereotype.Component;
  * com.streamflow.processor.config.KafkaConsumerConfig} (manual ack, JSON deserialization). A
  * separate container factory is NOT required because alert throughput is orders of magnitude lower
  * than viewer events.
+ *
+ * <p>{@link CassandraAlertRepository} is {@code Optional}-wrapped rather than gated with
+ * {@code @ConditionalOnBean} on this class: conditional annotations on component-scanned beans (as
+ * opposed to {@code @Configuration} classes) are not reliably evaluated by Spring Boot, so this
+ * consumer always exists and simply no-ops when Cassandra persistence isn't configured — the same
+ * convention {@link ViewerEventConsumer} and {@link
+ * com.streamflow.processor.snapshot.SnapshotPublisher} use.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnBean(CassandraAlertRepository.class)
 public class AlertCassandraConsumer {
 
-  private final CassandraAlertRepository cassandraAlertRepository;
+  private final Optional<CassandraAlertRepository> cassandraAlertRepository;
 
   /**
    * Listens to the {@code alerts} topic and writes each alert to Cassandra.
@@ -48,7 +54,7 @@ public class AlertCassandraConsumer {
       containerFactory = "alertListenerContainerFactory")
   public void consume(@Payload AlertEventDTO alert, Acknowledgment acknowledgment) {
     try {
-      cassandraAlertRepository.persist(alert);
+      cassandraAlertRepository.ifPresent(repo -> repo.persist(alert));
       acknowledgment.acknowledge();
       log.debug(
           "SPEC-17: alert dispatched to Cassandra: alertId={} stream={} type={}",
