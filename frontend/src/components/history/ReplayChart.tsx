@@ -130,7 +130,7 @@ function CustomTooltip(props: Record<string, unknown>) {
         }
         return (
           <p key={idx} style={{ color: entry.name === 'Buffer Rate %' ? '#f59e0b' : '#60a5fa' }}>
-            {entry.name}: <span className="font-mono">{entry.value?.toLocaleString()}</span>
+            {entry.name}: <span className="font-mono">{entry.value?.toLocaleString('en-US')}</span>
           </p>
         )
       })}
@@ -138,7 +138,7 @@ function CustomTooltip(props: Record<string, unknown>) {
   )
 }
 
-const fmt = new Intl.NumberFormat()
+const fmt = new Intl.NumberFormat('en-US')
 
 export function ReplayChart({ data, alerts }: ReplayChartProps) {
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null)

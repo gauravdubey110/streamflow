@@ -20,7 +20,7 @@ interface StreamCardProps {
   fading?: boolean
 }
 
-const fmt = new Intl.NumberFormat()
+const fmt = new Intl.NumberFormat('en-US')
 
 /**
  * StreamCard — tile for one live stream.  Subscribes to WebSocket metrics.

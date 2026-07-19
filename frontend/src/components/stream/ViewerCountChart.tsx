@@ -56,7 +56,9 @@ export const ViewerCountChart = memo(function ViewerCountChart({
             fontSize: 12,
           }}
           formatter={(value: ValueType | undefined): [string, NameType] => [
-            typeof value === 'number' ? new Intl.NumberFormat().format(value) : String(value ?? ''),
+            typeof value === 'number'
+              ? new Intl.NumberFormat('en-US').format(value)
+              : String(value ?? ''),
             'Viewers',
           ]}
           labelFormatter={(label) => `Time: ${String(label ?? '')}`}
