@@ -1,0 +1,229 @@
+2026-07-19T14:09:49.9330318Z Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
+2026-07-19T14:09:49.9331508Z
+2026-07-19T14:09:49.9331515Z
+2026-07-19T14:09:49.9331899Z     None
+2026-07-19T14:09:49.9334205Z 2026-07-19T14:09:49.921Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:49.9336765Z
+2026-07-19T14:09:49.9336773Z
+--- ERROR ---
+2026-07-19T14:09:49.9337066Z
+2026-07-19T14:09:49.9348421Z java.lang.IllegalStateException: Failed to load ApplicationContext for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.streamflow.processor.StreamProcessorApplication], contextIniti
+2026-07-19T14:09:49.9364251Z Exclusions:
+2026-07-19T14:09:49.9365718Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:180) ~[spring-test-6.1.6.jar:6.1.6]
+--- ERROR ---
+2026-07-19T14:09:49.9580542Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225) ~[spring-test-6.1.6.jar:6.1.6]
+2026-07-19T14:09:49.9583218Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152) ~[spring-test-6.1.6.jar:6.1.6]
+2026-07-19T14:09:49.9584421Z 	... 73 common frames omitted
+
+2026-07-19T14:09:49.9584722Z
+2026-07-19T14:09:49.9586995Z 2026-07-19T14:09:49.924Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:49.9589773Z
+2026-07-19T14:09:49.9599856Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.stre
+--- ERROR ---
+2026-07-19T14:09:49.9787650Z 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:49.9789194Z 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:49.9790854Z 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.5.jar:3.2.5]
+
+2026-07-19T14:09:49.9791670Z
+2026-07-19T14:09:49.9793844Z 2026-07-19T14:09:49.925Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:49.9796241Z
+2026-07-19T14:09:49.9807334Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.stre
+--- ERROR ---
+2026-07-19T14:09:49.9950334Z     None
+
+2026-07-19T14:09:49.9950553Z
+2026-07-19T14:09:49.9950558Z
+2026-07-19T14:09:49.9950562Z
+2026-07-19T14:09:50.2452093Z [ERROR] Tests run: 3, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 5.979 s <<< FAILURE! -- in com.streamflow.processor.consumer.ViewerEventConsumerIT
+2026-07-19T14:09:50.2455378Z [ERROR] com.streamflow.processor.consumer.ViewerEventConsumerIT.ac3_sameJoinFiveTimesIsIdempotent -- Time elapsed: 0.001 s <<< ERROR!
+2026-07-19T14:09:50.2470759Z java.lang.IllegalStateException: Failed to load ApplicationContext for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.streamflow.processor.StreamProcessorApplication], contextInitia
+--- ERROR ---
+2026-07-19T14:09:50.2547662Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+2026-07-19T14:09:50.2550301Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+2026-07-19T14:09:50.2551802Z 	... 17 more
+
+2026-07-19T14:09:50.2551936Z
+2026-07-19T14:09:50.2552642Z [ERROR] com.streamflow.processor.consumer.ViewerEventConsumerIT.ac1_thousandJoinEventsYieldZCardOfThousand -- Time elapsed: 0.001 s <<< ERROR!
+2026-07-19T14:09:50.2560003Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.stre
+2026-07-19T14:09:50.2571181Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+--- ERROR ---
+2026-07-19T14:09:50.2587030Z 	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+2026-07-19T14:09:50.2587446Z 	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+2026-07-19T14:09:50.2587849Z 	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+2026-07-19T14:09:50.2588103Z
+2026-07-19T14:09:50.2588633Z [ERROR] com.streamflow.processor.consumer.ViewerEventConsumerIT.ac2_thousandJoinsMinus200DropsYieldEightHundred -- Time elapsed: 0 s <<< ERROR!
+2026-07-19T14:09:50.2599646Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.stre
+--- ERROR ---
+2026-07-19T14:09:55.6726742Z  :: Spring Boot ::                (v3.2.5)
+
+2026-07-19T14:09:55.6727087Z
+2026-07-19T14:09:55.6729135Z 2026-07-19T14:09:55.629Z  INFO 2649 --- [           main] c.s.p.consumer.StreamHealthConsumerIT    : Starting StreamHealthConsumerIT using Java 17.0.19 with PID 2649 (started by runner in /home/runner/work/streamflow/streamflow/backend/streamflow-processor)
+2026-07-19T14:09:55.6732394Z 2026-07-19T14:09:55.629Z  INFO 2649 --- [           main] c.s.p.consumer.StreamHealthConsumerIT    : No active profile set, falling back to 1 default profile: "default"
+2026-07-19T14:09:55.7842361Z 2026-07-19T14:09:55.775Z  WARN 2649 --- [           main] s.c.a.AnnotationConfigApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.support.BeanDefinitionOverrideException: Invalid bean 
+2026-07-19T14:09:55.7853044Z 2026-07-19T14:09:55.779Z  INFO 2649 --- [           main] .s.b.a.l.ConditionEvaluationReportLogger :
+
+2026-07-19T14:09:55.7853664Z
+--- ERROR ---
+2026-07-19T14:09:55.7854370Z Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-07-19T14:09:55.7855678Z 2026-07-19T14:09:55.781Z ERROR 2649 --- [           main] o.s.b.d.LoggingFailureAnalysisReporter   :
+
+--- ERROR ---
+2026-07-19T14:09:55.7856298Z
+2026-07-19T14:09:55.7856438Z ***************************
+2026-07-19T14:09:55.7856826Z APPLICATION FAILED TO START
+2026-07-19T14:09:55.7857200Z ***************************
+
+--- ERROR ---
+2026-07-19T14:09:55.7857427Z
+2026-07-19T14:09:55.7872008Z     None
+
+2026-07-19T14:09:55.7872178Z
+2026-07-19T14:09:55.7872183Z
+2026-07-19T14:09:55.7872189Z
+2026-07-19T14:09:55.7874274Z 2026-07-19T14:09:55.781Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:55.7890510Z
+2026-07-19T14:09:55.7901713Z java.lang.IllegalStateException: Failed to load ApplicationContext for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.streamflow.processor.StreamProcessorApplication], contextIniti
+--- ERROR ---
+2026-07-19T14:09:55.8195014Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225) ~[spring-test-6.1.6.jar:6.1.6]
+2026-07-19T14:09:55.8198844Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152) ~[spring-test-6.1.6.jar:6.1.6]
+2026-07-19T14:09:55.8201823Z 	... 73 common frames omitted
+
+2026-07-19T14:09:55.8202761Z
+2026-07-19T14:09:55.8205592Z 2026-07-19T14:09:55.785Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:55.8208291Z
+2026-07-19T14:09:55.8222758Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.str
+--- ERROR ---
+2026-07-19T14:09:55.8417613Z 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:55.8419611Z 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:55.8421285Z 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.5.jar:3.2.5]
+
+2026-07-19T14:09:55.8422313Z
+2026-07-19T14:09:55.8424618Z 2026-07-19T14:09:55.788Z  WARN 2649 --- [           main] o.s.test.context.TestContextManager      : Caught exception while allowing TestExecutionListener [org.springframework.test.context.support.DependencyInjectionTestExecutionListener] to prepare test instance [com.st
+
+2026-07-19T14:09:55.8427122Z
+2026-07-19T14:09:55.8438838Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.str
+--- ERROR ---
+2026-07-19T14:09:55.8630931Z 	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:55.8632611Z 	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507) ~[surefire-booter-3.2.5.jar:3.2.5]
+2026-07-19T14:09:55.8634285Z 	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495) ~[surefire-booter-3.2.5.jar:3.2.5]
+
+2026-07-19T14:09:55.8635306Z
+2026-07-19T14:09:56.1431728Z [ERROR] Tests run: 3, Failures: 0, Errors: 3, Skipped: 0, Time elapsed: 5.896 s <<< FAILURE! -- in com.streamflow.processor.consumer.StreamHealthConsumerIT
+2026-07-19T14:09:56.1434412Z [ERROR] com.streamflow.processor.consumer.StreamHealthConsumerIT.latestEvent_overwritesPreviousHashValues -- Time elapsed: 0.002 s <<< ERROR!
+2026-07-19T14:09:56.1447354Z java.lang.IllegalStateException: Failed to load ApplicationContext for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.streamflow.processor.StreamProcessorApplication], contextIniti
+--- ERROR ---
+2026-07-19T14:09:56.1566752Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+2026-07-19T14:09:56.1569499Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+2026-07-19T14:09:56.1571268Z 	... 17 more
+
+2026-07-19T14:09:56.1571632Z
+2026-07-19T14:09:56.1572743Z [ERROR] com.streamflow.processor.consumer.StreamHealthConsumerIT.degradedEvent_hashFieldsWrittenCorrectly -- Time elapsed: 0.001 s <<< ERROR!
+2026-07-19T14:09:56.1585357Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.str
+2026-07-19T14:09:56.1611936Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+--- ERROR ---
+2026-07-19T14:09:56.1638808Z 	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+2026-07-19T14:09:56.1640114Z 	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+2026-07-19T14:09:56.1641123Z 	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+2026-07-19T14:09:56.1641757Z
+2026-07-19T14:09:56.1642734Z [ERROR] com.streamflow.processor.consumer.StreamHealthConsumerIT.ac1_healthHashPopulatedInRedis -- Time elapsed: 0.001 s <<< ERROR!
+2026-07-19T14:09:56.1655274Z java.lang.IllegalStateException: ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.str
+2026-07-19T14:09:56.1681730Z 	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:145)
+--- ERROR ---
+2026-07-19T14:09:56.1735129Z
+2026-07-19T14:09:56.5318399Z [INFO]
+2026-07-19T14:09:56.5319180Z [INFO] Results:
+2026-07-19T14:09:56.5320207Z [INFO]
+2026-07-19T14:09:56.5320841Z [ERROR] Errors:
+2026-07-19T14:09:56.5338579Z [ERROR]   QualityDistAggregatorIT.ac1_normalLoad_qualityDistributionSumsToHundred » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@1f6865ca testClass = com.streamflow.processor.aggregator.QualityDistAggregatorIT, locations = [], classes =
+2026-07-19T14:09:56.5366871Z [ERROR]   QualityDistAggregatorIT.ac3_highBufferEventInjection_raisesSnapshotBufferRate » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@1f6865ca testClass = com.streamflow.proces
+--- ERROR ---
+2026-07-19T14:09:56.5392358Z [ERROR]   AlertEngineIT.ac1_dedup_secondTickSuppressed » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7efba9b9 testClass = com.streamflow.processor.alert.AlertEngineIT, location
+2026-07-19T14:09:56.5417498Z [ERROR]   AlertEngineIT.ac1_highBuffer_producesAlertOnTopic » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7efba9b9 testClass = com.streamflow.processor.alert.AlertEngineIT, loc
+2026-07-19T14:09:56.5440613Z [ERROR]   AlertEngineIT.ac2_clearCondition_deletesDedup » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7efba9b9 testClass = com.streamflow.processor.alert.AlertEngineIT, locatio
+--- ERROR ---
+2026-07-19T14:09:56.5454006Z [ERROR]   AlertEngineIT.ac4_activeAlertsCount_reflectsActiveDedup » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@7efba9b9 testClass = com.streamflow.processor.alert.AlertEngineIT, locations = [], classes = [com.streamflow.processor.Stre
+2026-07-19T14:09:56.5467554Z [ERROR]   AlertPublisherCircuitBreakerIT.fallback_droppedAlertsList_cappedAt100 » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@146db8a6 testClass = com.streamflow.processor.circ
+2026-07-19T14:09:56.5482035Z [ERROR]   AlertPublisherCircuitBreakerIT.whenKafkaFails_cbOpens_fallbackStoresDroppedAlerts » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@146db8a6 testClass = com.streamflow.processor.circuitbreaker.AlertPublisherCircuitBreakerIT, loca
+--- ERROR ---
+2026-07-19T14:09:56.5495609Z [ERROR]   StreamHealthConsumerIT.ac1_healthHashPopulatedInRedis » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealt
+2026-07-19T14:09:56.5509181Z [ERROR]   StreamHealthConsumerIT.degradedEvent_hashFieldsWrittenCorrectly » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.S
+2026-07-19T14:09:56.5523066Z [ERROR]   StreamHealthConsumerIT.latestEvent_overwritesPreviousHashValues » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@23338420 testClass = com.streamflow.processor.consumer.StreamHealthConsumerIT, locations = [], classes = [com.strea
+--- ERROR ---
+2026-07-19T14:09:56.5536429Z [ERROR]   ViewerEventConsumerIT.ac1_thousandJoinEventsYieldZCardOfThousand » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.
+2026-07-19T14:09:56.5550474Z [ERROR]   ViewerEventConsumerIT.ac2_thousandJoinsMinus200DropsYieldEightHundred » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.cons
+2026-07-19T14:09:56.5575940Z [ERROR]   ViewerEventConsumerIT.ac3_sameJoinFiveTimesIsIdempotent » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@7277fa93 testClass = com.streamflow.processor.consumer.ViewerEventConsumerIT, locations = [], classes = [com.streamflow.pro
+--- ERROR ---
+2026-07-19T14:09:56.5602163Z [ERROR]   CassandraRepositoryIT.ac1_thousandViewerEventsArePersistedAndQueryable » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.per
+2026-07-19T14:09:56.5628986Z [ERROR]   CassandraRepositoryIT.ac1b_viewerEventsStoredLatestFirst » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.persistence.Cassa
+2026-07-19T14:09:56.5655472Z [ERROR]   CassandraRepositoryIT.ac2_metricSnapshotWrittenOncePerMinute » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.persistence.C
+--- ERROR ---
+2026-07-19T14:09:56.5681944Z [ERROR]   CassandraRepositoryIT.ac3_alertPersistedAndQueryableByDateBucket » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.persisten
+2026-07-19T14:09:56.5718806Z [ERROR]   CassandraRepositoryIT.dayBucketFormatIsCorrect » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.persistence.CassandraRepositoryIT, locations = [], classes = [com.streamflow.processor
+2026-07-19T14:09:56.5745359Z [ERROR]   CassandraRepositoryIT.hourBucketFormatIsCorrect » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@12c55199 testClass = com.streamflow.processor.persistence.CassandraRepos
+--- ERROR ---
+2026-07-19T14:09:56.5771522Z [ERROR]   SnapshotPublisherIT.ac1_and_ac2_snapshotsAppearInRedisAndKafka » IllegalState Failed to load ApplicationContext for [MergedContextConfiguration@774b798 testClass = com.streamflow.processor.snapshot.SnapshotPublisherIT, locations = [], classes = [com.streamflow
+2026-07-19T14:09:56.5796842Z [ERROR]   SnapshotPublisherIT.ac4_snapshotJsonIsValidAndContainsTimestamp » IllegalState ApplicationContext failure threshold (1) exceeded: skipping repeated attempt to load context for [MergedContextConfiguration@774b798 testClass = com.streamflow.processor.snapshot.Sn
+
+2026-07-19T14:09:56.5809411Z [INFO]
+--- ERROR ---
+2026-07-19T14:09:56.5809844Z [ERROR] Tests run: 116, Failures: 0, Errors: 22, Skipped: 0
+2026-07-19T14:09:56.5810373Z [INFO]
+2026-07-19T14:09:56.5810820Z [INFO] ------------------------------------------------------------------------
+--- ERROR ---
+2026-07-19T14:09:56.5818053Z [INFO] ------------------------------------------------------------------------
+2026-07-19T14:09:56.5818649Z [INFO] Total time:  01:46 min
+2026-07-19T14:09:56.5819053Z [INFO] Finished at: 2026-07-19T14:09:56Z
+2026-07-19T14:09:56.5819785Z [INFO] ------------------------------------------------------------------------
+--- ERROR ---
+2026-07-19T14:09:56.5820971Z [ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.2.5:test (default-test) on project streamflow-processor:
+2026-07-19T14:09:56.5822064Z [ERROR]
+2026-07-19T14:09:56.5823093Z [ERROR] Please refer to /home/runner/work/streamflow/streamflow/backend/streamflow-processor/target/surefire-reports for the individual test results.
+--- ERROR ---
+2026-07-19T14:09:56.5824477Z [ERROR] Please refer to dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+2026-07-19T14:09:56.5825264Z [ERROR] ->[Help 1]
+--- ERROR ---
+2026-07-19T14:09:56.5826063Z [ERROR]
+2026-07-19T14:09:56.5826871Z [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+2026-07-19T14:09:56.5826871Z [ERROR] To see the full stack trace of the errors, re-run Maven with the -X switch for full debug logging.
+2026-07-19T14:09:56.5827376Z [ERROR]
+--- ERROR ---
+2026-07-19T14:09:56.5827991Z [ERROR] For more information about the errors and possible solutions, please read the following articles:
+2026-07-19T14:09:56.5829079Z [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+2026-07-19T14:09:56.5829930Z [ERROR]
+--- ERROR ---
+2026-07-19T14:09:56.5830434Z [ERROR] After correcting the problems, you can resume the build with the command
+2026-07-19T14:09:56.5831190Z   mvn <args> -rf :streamflow-processor
+
+================================================================================
+SUMMARY OF ERRORS
+================================================================================
+
+JOB ID: 88201495670
+REPOSITORY: gauravdubey110/streamflow
+COMMIT: e7b68db5c0a571577e31d0daf690558d7a13ed05
+
+TOTAL ERRORS: 22
+TOTAL TESTS RUN: 116
+
+ROOT CAUSE: BeanDefinitionOverrideException
+Exception Type: org.springframework.beans.factory.support.BeanDefinitionOverrideException
+Message: Invalid bean definition overriding
+Suggestion: Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
+
+FAILED TEST CLASSES:
+- QualityDistAggregatorIT (2 errors)
+- AlertEngineIT (4 errors)
+- AlertPublisherCircuitBreakerIT (2 errors)
+- StreamHealthConsumerIT (3 errors)
+- ViewerEventConsumerIT (3 errors)
+- CassandraRepositoryIT (5 errors)
+- SnapshotPublisherIT (2 errors)
+
+================================================================================
