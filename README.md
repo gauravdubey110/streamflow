@@ -31,21 +31,28 @@ alert markers and a tooltip.
 
 ## Architecture
 
-```
-Producer (1K TPS)
-  → viewer-events / stream-health (Kafka topics)
-  → Processor: Redis sliding-window aggregation + alert engine + circuit breaker
-  → metrics-aggregated / alerts / cb-events (Kafka topics)
-  → API Gateway: REST + STOMP/SockJS WebSocket push (1 s interval)
-  → React Dashboard (live charts, alert feed, chaos controls)
+![StreamFlow high-level design](docs/images/hld.svg)
 
-Persistence: Cassandra (time-series, historical replay)
-Observability: Prometheus + Grafana
-```
+How the pieces fit:
+
+- **Data plane (solid arrows):** the producer publishes events keyed by `streamId`; the processor
+  consumes them, aggregates sliding windows in Redis, and once a second per stream publishes a
+  snapshot (plus alerts and circuit-breaker transitions) back to Kafka. The API consumes those
+  topics and pushes them to the dashboard over STOMP — the WebSocket feed is Kafka-driven, not
+  polled from Redis.
+- **Two read paths:** live values come from Redis (`stream_snapshot`, 30 s TTL); history comes
+  from Cassandra, which is written only once per minute per stream and is used for replay, not
+  for live state.
+- **Control plane (dashed arrow):** chaos requests go dashboard → API → producer's internal REST
+  endpoint, the reverse direction of the data flow.
+- **Throughput limit:** because events are keyed by `streamId`, each stream's events share one
+  partition (with three streams, only one or two consumer threads do real work), and the processor
+  measured about 900 events/s on a dev machine. The default simulation rate is
+  therefore 500 events/s (`STREAMFLOW_SIMULATION_TPS`); higher rates make consumer lag grow.
 
 | Service | Port | Role |
 |---|---|---|
-| `streamflow-producer` | 8081 | Simulates 1K viewer events/s; chaos injection |
+| `streamflow-producer` | 8081 | Simulates viewer/health events (500/s by default); chaos injection |
 | `streamflow-processor` | 8082 | Kafka consumer; Redis aggregation; Resilience4j CB |
 | `streamflow-api` | 8080 | REST API + STOMP WebSocket gateway |
 | Frontend (Nginx) | 3000 | React live dashboard |
