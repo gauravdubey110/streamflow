@@ -9,6 +9,26 @@ Real-time live streaming analytics dashboard: Kafka → Spring Boot → Redis/Ca
 
 ---
 
+## Screenshots
+
+**Live dashboard** — one card per stream: viewer count and trend chart, health gauge, quality
+distribution, alert feed, circuit-breaker state, and chaos controls, updated every second over
+WebSocket.
+
+![Live dashboard](docs/images/dashboard.jpg)
+
+**Chaos injection** — injecting a scenario (here `High Buffer` for 30 s on `stream-001`) shows a
+countdown with a Cancel button; the resulting alerts stream into the feed.
+
+![Chaos injection](docs/images/chaos-injection.jpg)
+
+**Historical replay** — the History modal replays persisted per-minute metrics from Cassandra with
+alert markers and a tooltip.
+
+![Historical replay](docs/images/historical-replay.jpg)
+
+---
+
 ## Architecture
 
 ```
