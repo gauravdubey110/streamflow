@@ -10,7 +10,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.cassandra.core.CassandraOperations;
 import org.springframework.stereotype.Repository;
 
@@ -43,7 +43,10 @@ import org.springframework.stereotype.Repository;
  */
 @Slf4j
 @Repository
-@ConditionalOnBean(CassandraOperations.class)
+@ConditionalOnProperty(
+    name = "streamflow.cassandra.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 public class CassandraViewerEventRepository {
 
   /** Hourly bucket date format: {@code yyyy-MM-dd-HH}. */

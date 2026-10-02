@@ -62,9 +62,18 @@
       <groupId>io.github.resilience4j</groupId>
       <artifactId>resilience4j-micrometer</artifactId>
     </dependency>
+    <!-- Web server: required to serve /actuator/health and /actuator/prometheus on port 8082 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
     </dependency>
 
     <!-- Lombok -->

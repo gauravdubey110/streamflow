@@ -6,6 +6,8 @@ import react from '@vitejs/plugin-react'
 // without CORS issues: /api and /ws both forward to the API gateway on :8080.
 export default defineConfig({
   plugins: [react()],
+  // sockjs-client expects Node's `global`; alias it to the browser global.
+  define: { global: 'globalThis' },
   server: {
     proxy: {
       '/api': 'http://localhost:8080',

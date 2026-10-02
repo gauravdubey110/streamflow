@@ -66,14 +66,14 @@ export function useStreamMetrics(streamId: string): UseStreamMetricsResult {
         healthScore: msg.healthScore,
         circuitBreakerState: 'CLOSED',
         activeAlerts: 0,
-        snapshotTs: msg.ts,
+        snapshotTs: msg.snapshotTs,
       }
       setSnapshot(next)
 
       // Push to ring buffer; trim to HISTORY_LIMIT.
       const point: ChartPoint = {
-        time: formatTime(msg.ts),
-        ts: msg.ts,
+        time: formatTime(msg.snapshotTs),
+        ts: msg.snapshotTs,
         liveViewerCount: msg.liveViewerCount,
       }
       const buf = bufferRef.current

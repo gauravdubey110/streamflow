@@ -9,6 +9,12 @@ constraint, not a code defect — not part of this commit). Frontend was
 missing its entire Vite/TS/ESLint scaffold and had one real locale bug,
 both fixed below. `CLAUDE.md` was added in an earlier, unrelated pass.
 
+**Update:** GitHub Actions job 88201495670 (commit e7b68db) subsequently failed
+`streamflow-processor`'s test phase in CI — a real code defect, distinct from
+the local Docker-npipe constraint above, since it happens during Spring's
+bean-definition registration phase and fails identically with or without a
+reachable Docker daemon. Root-caused and fixed in Commit 5 below.
+
 ---
 
 ## Commit 1 — Add CLAUDE.md repository guidance for Claude Code
@@ -126,6 +132,63 @@ git add commits/build-verification-and-fixes.md
 
 ---
 
+## Commit 5 — Fix CI failure: bean name collisions in streamflow-processor
+
+**Message:**
+```
+Fix BeanDefinitionOverrideException breaking all processor IT tests in CI
+
+GitHub Actions job 88201495670 (commit e7b68db) failed all 22 assertions
+across streamflow-processor's 7 IT test classes with:
+
+  BeanDefinitionOverrideException: Invalid bean definition with name
+  'processorMetrics' ... already been defined in
+  [.../metrics/ProcessorMetrics.class] and overriding is disabled.
+
+Root cause: com.streamflow.processor.metrics.ProcessorMetrics (SPEC-20,
+a @Component) shares its simple class name with Micrometer's built-in
+io.micrometer.core.instrument.binder.system.ProcessorMetrics, which Spring
+Boot Actuator's SystemMetricsAutoConfiguration also registers under the
+default bean name "processorMetrics". Every @SpringBootTest context in the
+module hit this during bean-definition registration — before any container
+or broker connection is attempted — which is why all 7 IT classes failed
+identically regardless of which Testcontainers they used. Fixed by pinning
+an explicit, non-colliding bean name (@Component("streamflowProcessorMetrics"));
+all existing injection sites resolve by type and are unaffected.
+
+Fixing that unmasked a second, previously-unreached defect: with context
+loading no longer aborting immediately, AlertCassandraConsumer (SPEC-17)
+failed instead with "required a bean of type CassandraAlertRepository that
+could not be found." It used a class-level @ConditionalOnBean on a
+@Component picked up via classpath scanning — a pattern Spring Boot's own
+docs warn is not reliably evaluated (unlike @ConditionalOnBean inside a
+@Configuration class). Fixed by switching to the same Optional<>-wrapped
+constructor-injection convention already used by ViewerEventConsumer and
+SnapshotPublisher for the same Cassandra-optional problem, dropping the
+unreliable class-level conditional entirely.
+
+Verified locally: mvn spring-boot:run against streamflow-processor now
+reaches "Started StreamProcessorApplication" (previously failed during
+context refresh) with both the main and the test-scoped
+(Cassandra-autoconfig-excluded) property sets. Testcontainers-backed IT
+tests themselves could not be re-run locally (pre-existing Docker-npipe
+constraint, see above) — recommend confirming green on the next CI run.
+
+Refs: SPEC-17 R5, SPEC-20 R3
+```
+
+**Files:**
+- `backend/streamflow-processor/src/main/java/com/streamflow/processor/metrics/ProcessorMetrics.java`
+- `backend/streamflow-processor/src/main/java/com/streamflow/processor/consumer/AlertCassandraConsumer.java`
+
+**Stage command:**
+```bash
+git add backend/streamflow-processor/src/main/java/com/streamflow/processor/metrics/ProcessorMetrics.java \
+        backend/streamflow-processor/src/main/java/com/streamflow/processor/consumer/AlertCassandraConsumer.java
+```
+
+---
+
 ## Verification before pushing
 
 - [x] `mvn -B -f backend/pom.xml spotless:check` — exits 0 (all 4 modules clean)
@@ -134,3 +197,11 @@ git add commits/build-verification-and-fixes.md
 - [x] `npm --prefix frontend run lint` — 0 errors
 - [x] `npm --prefix frontend test` — 104/104 pass
 - [x] `npm --prefix frontend run build` — succeeds, 226 KB gzip
+- [x] `mvn -B -f backend/pom.xml spotless:check` (post Commit 5) — exits 0
+- [x] `mvn -B -f backend/pom.xml test "-Dtest=!*IT"` (post Commit 5) — 69 tests, 0 failures
+      (3 errors are the pre-existing local Docker-npipe constraint, unrelated)
+- [x] `mvn -B -f backend/streamflow-processor/pom.xml spring-boot:run` (post Commit 5) —
+      reaches "Started StreamProcessorApplication" under both main and test property sets
+      (previously failed during ApplicationContext refresh with BeanDefinitionOverrideException)
+- [ ] Full Testcontainers IT suite — not runnable locally (Docker-npipe constraint); confirm
+      on next CI run of `.github/workflows/ci.yml`'s `backend` job

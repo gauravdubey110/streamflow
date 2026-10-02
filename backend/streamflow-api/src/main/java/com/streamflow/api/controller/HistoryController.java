@@ -15,8 +15,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.data.cassandra.core.CassandraOperations;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,7 +53,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/streams")
 @RequiredArgsConstructor
-@ConditionalOnBean(CassandraOperations.class)
+@ConditionalOnProperty(
+    name = "streamflow.cassandra.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 @Tag(
     name = "History",
     description = "Historical metric and alert replay endpoints (Cassandra-backed)")

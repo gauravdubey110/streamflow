@@ -55,7 +55,7 @@ export interface MetricsUpdateMessage {
   p95LatencyMs: number
   qualityDistribution: Record<string, number>
   healthScore: number
-  ts: number
+  snapshotTs: number
 }
 
 export interface CircuitBreakerStateChangeMessage {

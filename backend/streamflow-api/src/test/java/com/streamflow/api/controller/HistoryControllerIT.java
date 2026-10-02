@@ -49,6 +49,7 @@ import org.testcontainers.utility.DockerImageName;
     properties = {
       // Re-enable Cassandra auto-configuration (excluded in default test profile)
       "spring.autoconfigure.exclude=",
+      "streamflow.cassandra.enabled=true",
       "spring.cassandra.schema-action=none"
     })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)

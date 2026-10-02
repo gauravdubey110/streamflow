@@ -229,9 +229,9 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       STREAMFLOW_SIMULATION_ENABLED: "true"
-      STREAMFLOW_SIMULATION_TPS: "1000"
+      STREAMFLOW_SIMULATION_TPS: "500"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 6
@@ -264,7 +264,7 @@ services:
       CASSANDRA_PORT: "9042"
       CASSANDRA_DATACENTER: datacenter1
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 6
@@ -296,8 +296,9 @@ services:
       CASSANDRA_CONTACT_POINTS: cassandra
       CASSANDRA_PORT: "9042"
       STREAMFLOW_PRODUCER_BASE_URL: http://producer:8081
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 6
@@ -321,7 +322,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80"]
       interval: 10s
       timeout: 5s
       retries: 5

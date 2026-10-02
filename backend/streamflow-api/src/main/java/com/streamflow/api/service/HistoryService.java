@@ -17,8 +17,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.data.cassandra.core.CassandraOperations;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 /**
@@ -45,7 +44,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@ConditionalOnBean(CassandraOperations.class)
+@ConditionalOnProperty(
+    name = "streamflow.cassandra.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 public class HistoryService {
 
   /** Maximum number of data points returned in a single response (SPEC-18 NFR2). */

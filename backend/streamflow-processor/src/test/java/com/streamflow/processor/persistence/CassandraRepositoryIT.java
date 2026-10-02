@@ -56,7 +56,11 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(
     // Re-enable Cassandra auto-configuration by setting exclude to empty string.
     // The test-profile application.properties disables it; this test needs it enabled.
-    properties = {"spring.autoconfigure.exclude=", "spring.cassandra.schema-action=none"})
+    properties = {
+      "spring.autoconfigure.exclude=",
+      "streamflow.cassandra.enabled=true",
+      "spring.cassandra.schema-action=none"
+    })
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class CassandraRepositoryIT {
 

@@ -12,10 +12,13 @@ import { useAlertStore } from '../store/alertStore'
 import type { AlertFiredMessage } from '../types/alert.types'
 import type { AlertEvent } from '../types/alert.types'
 
+// Stable reference: a fresh [] per selector call makes zustand re-render forever.
+const NO_ALERTS: AlertEvent[] = []
+
 export function useAlerts(streamId: string): AlertEvent[] {
   const { subscribe, unsubscribe } = useWebSocket()
   const addAlert = useAlertStore((s) => s.addAlert)
-  const alerts = useAlertStore((s) => s.alerts[streamId] ?? [])
+  const alerts = useAlertStore((s) => s.alerts[streamId] ?? NO_ALERTS)
 
   useEffect(() => {
     const destination = `/topic/streams/${streamId}/alerts`
