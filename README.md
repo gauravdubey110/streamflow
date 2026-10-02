@@ -2,10 +2,8 @@
 
 Real-time live streaming analytics dashboard: Kafka → Spring Boot → Redis/Cassandra → React (WebSocket).
 
-[![CI](https://github.com/YOUR_ORG/StreamFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_ORG/StreamFlow/actions/workflows/ci.yml)
+[![CI](https://github.com/gauravdubey110/streamflow/actions/workflows/ci.yml/badge.svg)](https://github.com/gauravdubey110/streamflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
-> Replace `YOUR_ORG/StreamFlow` in the badge URL with your actual GitHub repository path.
 
 ---
 
@@ -151,10 +149,3 @@ All connection strings default to `localhost` for local development and accept o
 | `CASSANDRA_PORT` | `9042` | processor, api |
 | `STREAMFLOW_SIMULATION_TPS` | `1000` | producer |
 | `STREAMFLOW_PRODUCER_BASE_URL` | `http://localhost:8081` | api (chaos proxy) |
-
----
-
-## References
-
-- [Project Plan](StreamFlow_Project_Plan.md) — architecture, data models, API contracts
-- [Spec Index](specs/README.md) — 22-spec, 4-week implementation schedule
